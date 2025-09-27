@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 848409ee8ba454f42a5ddff137688a27, type: 3}
+  m_Name: ReferenceImageLibrary
+  m_EditorClassIdentifier: 
+  m_GuidLow: 4870782447850477818
+  m_GuidHigh: 10052330935516402367
+  m_DataStore:
+    m_Storage: []
+  m_Images:
+  - m_SerializedGuid:
+      m_GuidLow: 4763135020027111882
+      m_GuidHigh: 6752516129822113192
+    m_SerializedTextureGuid:
+      m_GuidLow: 3662554431242185607
+      m_GuidHigh: 14826918619313680937
+    m_Size: {x: 0.1, y: 0.056250002}
+    m_SpecifySize: 1
+    m_Name: UnityLogo
+    m_Texture: {fileID: 0}
+  - m_SerializedGuid:
+      m_GuidLow: 5743854918103623467
+      m_GuidHigh: 15950870313551346868
+    m_SerializedTextureGuid:
+      m_GuidLow: 6220671464277405492
+      m_GuidHigh: 2137464932821758763
+    m_Size: {x: 0.25, y: 0.25}
+    m_SpecifySize: 1
+    m_Name: AnchorEntrance
+    m_Texture: {fileID: 0}
+  - m_SerializedGuid:
+      m_GuidLow: 5420412809623093106
+      m_GuidHigh: 778919065810031005
+    m_SerializedTextureGuid:
+      m_GuidLow: 17105885437126681240
+      m_GuidHigh: 8502571284292892538
+    m_Size: {x: 0.25, y: 0.25}
+    m_SpecifySize: 1
+    m_Name: AnchorMedina
+    m_Texture: {fileID: 0}
+  - m_SerializedGuid:
+      m_GuidLow: 5042339133270139797
+      m_GuidHigh: 4939062867767063195
+    m_SerializedTextureGuid:
+      m_GuidLow: 645402532692393223
+      m_GuidHigh: 15808414964900488824
+    m_Size: {x: 0.25, y: 0.25}
+    m_SpecifySize: 1
+    m_Name: AnchorLibrary
+    m_Texture: {fileID: 0}

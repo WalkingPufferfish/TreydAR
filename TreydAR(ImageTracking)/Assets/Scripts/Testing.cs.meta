@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4d49023f754ab09468af30ffeb744092
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - startPosition: {fileID: 9016494633793226840, guid: 10ff1cd52113677498522135685055b8, type: 3}
+  - endPosition: {fileID: 9016494633793226840, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+  - cubePrefab: {fileID: 9057233991158082149, guid: cb04ff80fb33ad049b367285c90aa32e, type: 3}
+  - arrowSpawner: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
