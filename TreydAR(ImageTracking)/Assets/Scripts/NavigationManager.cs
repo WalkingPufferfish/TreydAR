@@ -11,6 +11,7 @@ using TMPro;
 using UnityEngine.AI;
 using Unity.AI.Navigation;
 using System.Threading.Tasks;
+using System.Collections;
 
 public class NavigationManager : MonoBehaviour
 {
@@ -38,6 +39,8 @@ public class NavigationManager : MonoBehaviour
     [Tooltip("Drag the DISABLED Environment GameObject from your HIERARCHY here.")]
     public GameObject environmentSceneObject;
     public float environmentVerticalOffset = 0.0f;
+    public GameObject ScanGuide_Image;
+    public CanvasGroup scanGuideCanvasGroup;
 
     [Header("Navigation Control")]
     public TMP_Dropdown destinationDropdown;
@@ -121,6 +124,26 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
+    // A Coroutine to manage the fade out animation for Scan Guide
+    private System.Collections.IEnumerator FadeOutScanGuide(float duration = 0.5f)
+    {
+        float elapsed = 0f;
+        float startAlpha = scanGuideCanvasGroup.alpha;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float newAlpha = Mathf.Lerp(startAlpha, 0f, elapsed / duration);
+            scanGuideCanvasGroup.alpha = newAlpha;
+            yield return null;
+        }
+
+        scanGuideCanvasGroup.alpha = 0f;
+        scanGuideCanvasGroup.interactable = false;
+        scanGuideCanvasGroup.blocksRaycasts = false;
+    }
+
     // <<< MODIFIED >>>: This method is updated to find the correct data from the database
     // before calling the new core logic method. It no longer calls your old InitializeEnvironment.
     public void OnConfirmPlacementButtonPressed()
@@ -135,6 +158,11 @@ public class NavigationManager : MonoBehaviour
                 if (confirmPlacementButton != null)
                 {
                     confirmPlacementButton.gameObject.SetActive(false);
+                }
+
+                if (ScanGuide_Image != null)
+                {
+                    StartCoroutine(FadeOutScanGuide());
                 }
             }
             else
