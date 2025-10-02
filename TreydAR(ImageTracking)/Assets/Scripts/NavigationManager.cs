@@ -30,6 +30,13 @@ public class NavigationManager : MonoBehaviour
     [HideInInspector]
     public string targetImageName = "";
 
+    [Header("UI References")]
+    public TMP_Text textDisplay;
+
+    [Header("Navigation Marker")]
+    public GameObject navigationMarkerPrefab;
+    private GameObject currentMarker;
+
     // <<< ADDED >>>: This new list is the core of the multi-target system.
     [Header("Multi-Target Setup")]
     [Tooltip("Define all your image targets and their corresponding anchor points within the map.")]
@@ -525,6 +532,58 @@ public class NavigationManager : MonoBehaviour
             StopNavigation();
         }
     }
+    /// <summary>
+    /// Called by RoomSearchUIController when a room is selected from the dropdown.
+    /// Finds the corresponding anchor and places a navigation marker.
+    /// </summary>
+    public void NavigateToRoom(string roomName)
+    {
+        Debug.Log("Navigating to room: " + roomName);
+
+        // 1. Look up the room's anchor or endpoint
+        Transform targetAnchor = FindRoomAnchor(roomName);
+        if (targetAnchor == null)
+        {
+            Debug.LogWarning($"Room anchor not found for: {roomName}");
+            if (textDisplay != null)
+                textDisplay.text = $"Room '{roomName}' not found.";
+            return;
+        }
+
+        // 2. Trigger AR guidance (e.g., place marker or path)
+        PlaceNavigationMarker(targetAnchor.position);
+
+        // 3. Optionally update UI or feedback
+        if (textDisplay != null)
+            textDisplay.text = $"Navigating to {roomName}...";
+    }
+
+    /// <summary>
+    /// Finds a room anchor by name. Assumes GameObjects are named after room names.
+    /// </summary>
+    private Transform FindRoomAnchor(string roomName)
+    {
+        GameObject anchorObj = GameObject.Find(roomName);
+        return anchorObj != null ? anchorObj.transform : null;
+    }
+
+    /// <summary>
+    /// Places or updates the navigation marker at the target position.
+    /// </summary>
+    private void PlaceNavigationMarker(Vector3 position)
+    {
+        if (navigationMarkerPrefab == null)
+        {
+            Debug.LogWarning("Navigation marker prefab not assigned.");
+            return;
+        }
+
+        if (currentMarker != null)
+            Destroy(currentMarker);
+
+        currentMarker = Instantiate(navigationMarkerPrefab, position, Quaternion.identity);
+    }
+
     public void StopNavigation()
     {
         navigationActive = false;

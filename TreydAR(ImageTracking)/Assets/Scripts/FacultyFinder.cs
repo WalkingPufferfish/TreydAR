@@ -4,6 +4,9 @@ using TMPro;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Firebase;
+using Firebase.Database;
+using Firebase.Extensions;
 
 // Assuming FacultyMemberData, FirebaseManager, NavigationManager, DatabaseManager, FacultyListItemUI are defined
 
@@ -109,6 +112,31 @@ public class FacultyFinder : MonoBehaviour
     }
 
     // --- Internal Logic ---
+    public void FetchDepartmentRooms(System.Action<Dictionary<string, List<string>>> callback)
+    {
+        FirebaseDatabase.DefaultInstance.GetReference("departments").GetValueAsync().ContinueWith(task => {
+            if (task.IsCompleted)
+            {
+                var result = new Dictionary<string, List<string>>();
+                DataSnapshot snapshot = task.Result;
+                foreach (var dept in snapshot.Children)
+                {
+                    string deptName = dept.Key;
+                    List<string> rooms = new();
+                    foreach (var room in dept.Children)
+                        rooms.Add(room.Value.ToString());
+
+                    result[deptName] = rooms;
+                }
+                callback?.Invoke(result);
+            }
+            else
+            {
+                Debug.LogError("Failed to fetch departments: " + task.Exception);
+                callback?.Invoke(null);
+            }
+        });
+    }
 
     private void PopulateAndFilterList()
     {
