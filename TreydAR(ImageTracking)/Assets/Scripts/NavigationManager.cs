@@ -415,10 +415,13 @@ public class NavigationManager : MonoBehaviour
     }
     async Task LoadDestinations()
     {
-        if (firebaseManager == null || destinationDropdown == null) return;
-        availableDestinations = await firebaseManager.GetAllEndPointsAsync();
         destinationDropdown.ClearOptions();
-        var options = new List<TMP_Dropdown.OptionData> { new TMP_Dropdown.OptionData("Select Destination...") };
+
+        var options = new List<TMP_Dropdown.OptionData>
+        {
+            new TMP_Dropdown.OptionData("Select Destination...") // Null choice
+        };
+
         if (availableDestinations != null && availableDestinations.Count > 0)
         {
             options.AddRange(availableDestinations.Select(d => new TMP_Dropdown.OptionData(d.Name)));
@@ -428,7 +431,10 @@ public class NavigationManager : MonoBehaviour
             options.Add(new TMP_Dropdown.OptionData("No Destinations Found"));
             UpdateStatus("Error: Could not load destinations.");
         }
+
         destinationDropdown.options = options;
+        destinationDropdown.value = 0;
+        destinationDropdown.RefreshShownValue();
     }
 
     // <<< MODIFIED >>>: The logic is updated to check against the imageTargetDatabase list.
@@ -478,9 +484,26 @@ public class NavigationManager : MonoBehaviour
     void HandleDestinationSelection(int index)
     {
         selectedDestinationIndex = index;
-        if (index == 0) { StopNavigation(); return; }
+
+        // Skip placeholder
+        if (index == 0 || destinationDropdown.options[index].text == "Select Department")
+        {
+            StopNavigation();
+            return;
+        }
+
+        // Adjust index to match availableDestinations
         int adjustedIndex = index - 1;
-        if (adjustedIndex >= 0 && adjustedIndex < availableDestinations.Count) { StartNavigationToPoint(availableDestinations[adjustedIndex]); }
+
+        if (adjustedIndex >= 0 && adjustedIndex < availableDestinations.Count)
+        {
+            StartNavigationToPoint(availableDestinations[adjustedIndex]);
+        }
+        else
+        {
+            Debug.LogWarning($"Invalid destination index: {index}");
+            StopNavigation();
+        }
     }
     void Update()
     {
@@ -517,6 +540,7 @@ public class NavigationManager : MonoBehaviour
     }
     public void StartNavigationToPoint(PathPointData destinationData)
     {
+        Debug.Log($"Starting navigation to: {destinationData.Name}");
         if (!isInitialized || destinationData == null) { StopNavigation(); return; }
         Vector3 destinationWorldPosition = environmentOriginTransform.TransformPoint(destinationData.Position);
         if (NavMesh.SamplePosition(destinationWorldPosition, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
@@ -552,6 +576,9 @@ public class NavigationManager : MonoBehaviour
 
         // 2. Trigger AR guidance (e.g., place marker or path)
         PlaceNavigationMarker(targetAnchor.position);
+        currentTargetPosition = targetAnchor.position;
+        navigationActive = true;
+        forcePathRecalculation = true;
 
         // 3. Optionally update UI or feedback
         if (textDisplay != null)

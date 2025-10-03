@@ -9,6 +9,9 @@ using System.Linq;
 
 public class FirebaseManager : MonoBehaviour
 {
+    [Header("Department Database Settings")]
+    public string departmentDatabaseUrl = "https://endpoints-7f2ab-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
     [Header("Faculty Database Settings")]
     public string facultyDatabaseUrl = "https://facultydatabase-3f39e-default-rtdb.asia-southeast1.firebasedatabase.app/";
     public string facultyDataRootNode = "facultyMembers";
@@ -30,6 +33,57 @@ public class FirebaseManager : MonoBehaviour
         await InitializeFirebase();
     }
 
+    public async Task<Dictionary<string, DepartmentData>> GetDepartmentRoomDataAsync()
+    {
+        var result = new Dictionary<string, DepartmentData>();
+        if (!firebaseInitialized)
+        {
+            Debug.LogWarning("FirebaseManager: Not initialized when GetDepartmentRoomDataAsync was called");
+            return result;
+        }
+
+        try
+        {
+            DataSnapshot snapshot = await endPointsDbReference.Child(endPointsRootNode).GetValueAsync();
+
+            foreach (var dept in snapshot.Children)
+            {
+                string deptKey = dept.Key;
+                string name = dept.Child("Name").Value?.ToString();
+
+                List<string> rooms = new();
+                if (dept.HasChild("rooms") && dept.Child("rooms").HasChildren)
+                {
+                    foreach (var room in dept.Child("rooms").Children)
+                    {
+                        Debug.Log($"Room found under {deptKey}: {room.Value}");
+                        rooms.Add(room.Value.ToString());
+                    }
+                }
+                else
+                {
+                    Debug.Log($"No rooms found for department: {deptKey}");
+                }
+
+                result[deptKey] = new DepartmentData { Name = name, rooms = rooms };
+            }
+
+            Debug.Log($"FirebaseManager: Loaded {result.Count} departments from Firebase.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"FirebaseManager: Failed to fetch department-room data: {e.Message}");
+        }
+
+        return result;
+    }
+
+    public class DepartmentData
+    {
+        public string Name;
+        public List<string> rooms;
+    }
+
     public async Task InitializeFirebase()
     {
         if (firebaseInitialized) return;
@@ -42,13 +96,20 @@ public class FirebaseManager : MonoBehaviour
                 facultyDbReference = FirebaseDatabase.GetInstance(app, facultyDatabaseUrl).RootReference;
                 endPointsDbReference = FirebaseDatabase.GetInstance(app, endPointsDatabaseUrl).RootReference;
                 firebaseInitialized = true;
-                Debug.Log("FirebaseManager: Both database connections Initialized Successfully.");
+                Debug.Log("FirebaseManager: All database connections initialized successfully.");
                 ListenForFacultyUpdates();
             }
-            else { Debug.LogError($"FirebaseManager: Could not resolve all Firebase dependencies: {dependencyStatus}"); }
+            else
+            {
+                Debug.LogError($"FirebaseManager: Could not resolve all Firebase dependencies: {dependencyStatus}");
+            }
         }
-        catch (Exception e) { Debug.LogError($"FirebaseManager: Exception during Firebase Init: {e.Message}"); }
+        catch (Exception e)
+        {
+            Debug.LogError($"FirebaseManager: Exception during Firebase Init: {e.Message}");
+        }
     }
+
 
     // <<< --- NEW METHOD TO GET ENDPOINTS FROM FIREBASE --- >>>
     public async Task<List<PathPointData>> GetAllEndPointsAsync()

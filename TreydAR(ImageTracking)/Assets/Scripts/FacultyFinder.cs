@@ -138,6 +138,31 @@ public class FacultyFinder : MonoBehaviour
         });
     }
 
+    public class DepartmentData
+    {
+        public string anchor;
+        public List<string> rooms;
+    }
+
+    public void FetchDepartmentRoomData(System.Action<Dictionary<string, DepartmentData>> callback)
+    {
+        FirebaseDatabase.DefaultInstance.GetReference("departments").GetValueAsync().ContinueWith(task => {
+            var result = new Dictionary<string, DepartmentData>();
+            DataSnapshot snapshot = task.Result;
+            foreach (var dept in snapshot.Children)
+            {
+                string deptName = dept.Key;
+                string anchor = dept.Child("anchor").Value?.ToString();
+                List<string> rooms = new();
+                foreach (var room in dept.Child("rooms").Children)
+                    rooms.Add(room.Value.ToString());
+
+                result[deptName] = new DepartmentData { anchor = anchor, rooms = rooms };
+            }
+            callback?.Invoke(result);
+        });
+    }
+
     private void PopulateAndFilterList()
     {
         if (firebaseManager == null || facultyListContentParent == null || facultyListItemPrefab == null) return;

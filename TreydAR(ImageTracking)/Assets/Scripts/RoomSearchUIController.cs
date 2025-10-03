@@ -2,75 +2,135 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using Firebase;
+using Firebase.Database;
 
 public class RoomSearchUIController : MonoBehaviour
 {
-    public TMP_Dropdown DepartmentDropdown; 
-    public Button FindFaculty_Button;
-    public TMP_Dropdown Dropdown; // Room dropdown
+    [Header("UI References")]
+    public TMP_Dropdown DepartmentDropdown;
+    public TMP_Dropdown RoomDropdown;
     public TMP_Text TextDisplay;
-    public FacultyFinder FindFaculty;
     public NavigationManager navigationManager;
 
-    private Dictionary<string, List<string>> departmentRooms = new();
+    [Header("Firebase Reference")]
+    public FirebaseManager firebaseManager;
+
+    private Dictionary<string, FirebaseManager.DepartmentData> departmentData = new();
     private string selectedDepartment = "";
+    private string selectedRoom = "";
 
-    void Start()
+    async void Start()
     {
-        DepartmentDropdown.onValueChanged.AddListener(OnDepartmentSelected);
-        Dropdown.onValueChanged.AddListener(OnRoomSelected);
+        Debug.Log("RoomSearchUIController: Start() triggered");
 
-        FindFaculty.FetchDepartmentRooms(OnDepartmentDataReceived);
+        RoomDropdown.interactable = false;
+
+        DepartmentDropdown.onValueChanged.RemoveAllListeners();
+        RoomDropdown.onValueChanged.RemoveAllListeners();
+
+        DepartmentDropdown.onValueChanged.AddListener(OnDepartmentSelected);
+        RoomDropdown.onValueChanged.AddListener(OnRoomSelected);
+
+        departmentData = await firebaseManager.GetDepartmentRoomDataAsync();
+        Debug.Log($"Fetched departments: {string.Join(", ", departmentData.Keys)}");
+
+        PopulateDepartmentDropdown();
+    }
+
+    void PopulateDepartmentDropdown()
+    {
+        Debug.Log("Populating department dropdown...");
+        DepartmentDropdown.ClearOptions();
+
+        List<string> options = new List<string> { "Select Department..." };
+        options.AddRange(departmentData.Keys);
+        DepartmentDropdown.AddOptions(options);
+
+        DepartmentDropdown.value = 0;
+        DepartmentDropdown.RefreshShownValue();
+
+        selectedDepartment = DepartmentDropdown.options[1].text; // First actual department
+        UpdateRoomDropdown(selectedDepartment);
+        NavigateToDepartment(selectedDepartment);
     }
 
     void OnDepartmentSelected(int index)
     {
-        selectedDepartment = DepartmentDropdown.options[index].text;
-        UpdateRoomDropdown(selectedDepartment);
-    }
-
-    void OnDepartmentDataReceived(Dictionary<string, List<string>> data)
-    {
-        departmentRooms = data;
-
-        // Populate department dropdown
-        DepartmentDropdown.ClearOptions();
-        DepartmentDropdown.AddOptions(new List<string>(departmentRooms.Keys));
-
-        // Optionally preload first department
-        if (departmentRooms.Count > 0)
+        if (index == 0)
         {
-            selectedDepartment = DepartmentDropdown.options[0].text;
-            UpdateRoomDropdown(selectedDepartment);
+            selectedDepartment = "";
+            RoomDropdown.ClearOptions();
+            RoomDropdown.interactable = false;
+            TextDisplay.text = "Please select a valid department.";
+            return;
         }
 
-    }
-
-    void OpenDepartmentSelector()
-    {
-        // TODO: Replace with actual department selection UI
-        // For now, cycle through departments for testing
-        List<string> departments = new List<string>(departmentRooms.Keys);
-        int currentIndex = departments.IndexOf(selectedDepartment);
-        int nextIndex = (currentIndex + 1) % departments.Count;
-        selectedDepartment = departments[nextIndex];
+        selectedDepartment = DepartmentDropdown.options[index].text;
+        Debug.Log($"Department selected: {selectedDepartment}");
 
         UpdateRoomDropdown(selectedDepartment);
+        NavigateToDepartment(selectedDepartment);
     }
 
     void UpdateRoomDropdown(string department)
     {
-        if (!departmentRooms.ContainsKey(department)) return;
+        RoomDropdown.ClearOptions();
+        RoomDropdown.interactable = false;
 
-        Dropdown.ClearOptions();
-        Dropdown.AddOptions(departmentRooms[department]);
-        TextDisplay.text = $"Rooms for {department} loaded.";
+        if (string.IsNullOrEmpty(department) || !departmentData.ContainsKey(department))
+        {
+            TextDisplay.text = "No department selected or department not found.";
+            return;
+        }
+
+        var rooms = departmentData[department].rooms ?? new List<string>();
+        Debug.Log($"Selected department: {department}, Rooms count: {rooms.Count}");
+
+        if (rooms.Count > 0)
+        {
+            List<string> roomOptions = new List<string> { "Select Room..." };
+            roomOptions.AddRange(rooms);
+
+            RoomDropdown.AddOptions(roomOptions);
+            RoomDropdown.interactable = true;
+            RoomDropdown.value = 0;
+            RoomDropdown.RefreshShownValue();
+            TextDisplay.text = $"Rooms for {department} loaded.";
+        }
+        else
+        {
+            TextDisplay.text = $"No rooms assigned to {department}.";
+        }
     }
 
     void OnRoomSelected(int index)
     {
-        string selectedRoom = Dropdown.options[index].text;
-        TextDisplay.text = $"Selected: {selectedRoom}";
+        if (index < 0 || index >= RoomDropdown.options.Count) return;
+
+        if (index == 0)
+        {
+            selectedRoom = "";
+            TextDisplay.text = "Please select a valid room.";
+            return;
+        }
+
+        selectedRoom = RoomDropdown.options[index].text;
+        Debug.Log($"Room selected: {selectedRoom}");
+        TextDisplay.text = $"Selected room: {selectedRoom}";
         navigationManager.NavigateToRoom(selectedRoom);
+    }
+
+    void NavigateToDepartment(string department)
+    {
+        if (!departmentData.ContainsKey(department)) return;
+
+        string anchorName = departmentData[department].Name;
+        if (!string.IsNullOrEmpty(anchorName))
+        {
+            Debug.Log($"Navigating to department anchor: {anchorName}");
+            TextDisplay.text = $"Navigating to department: {department}";
+            navigationManager.NavigateToRoom(anchorName);
+        }
     }
 }
