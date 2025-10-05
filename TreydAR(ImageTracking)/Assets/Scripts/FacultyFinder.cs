@@ -190,11 +190,11 @@ public class FacultyFinder : MonoBehaviour
             FacultyListItemUI itemUI = listItem.GetComponent<FacultyListItemUI>();
             if (itemUI != null)
             {
-                itemUI.NameText.text = faculty.FullName ?? "N/A";
                 itemUI.DeptText.text = faculty.Department ?? "N/A";
+                if (itemUI.PositionText != null) itemUI.PositionText.text = faculty.Position ?? "N/A";
+                itemUI.NameText.text = faculty.FullName ?? "N/A";
                 itemUI.LocText.text = faculty.CurrentLocationName ?? "N/A";
                 itemUI.StatusText.text = faculty.AvailabilityStatus ?? "N/A";
-                if (itemUI.PositionText != null) itemUI.PositionText.text = faculty.Position ?? "N/A"; // Check if PositionText exists
             }
             else { Debug.LogError("FacultyListItemPrefab missing FacultyListItemUI script!", listItem); }
             Button itemButton = listItem.GetComponent<Button>();
