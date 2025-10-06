@@ -189,6 +189,46 @@ public class FirebaseManager : MonoBehaviour
     }
 
     // --- ALL FACULTY MANAGEMENT METHODS (No changes needed below this line) ---
+    public async Task<Dictionary<string, List<string>>> FetchDepartmentRoomsAsync()
+    {
+        var result = new Dictionary<string, List<string>>();
+        if (!firebaseInitialized)
+        {
+            Debug.LogWarning("FirebaseManager: Not initialized when FetchDepartmentRoomsAsync was called");
+            return result;
+        }
+
+        try
+        {
+            var dbRef = FirebaseDatabase.GetInstance(FirebaseApp.DefaultInstance, endPointsDatabaseUrl).RootReference;
+            DataSnapshot snapshot = await dbRef.Child(endPointsRootNode).GetValueAsync();
+
+            foreach (var dept in snapshot.Children)
+            {
+                string deptKey = dept.Key;
+                List<string> rooms = new();
+
+                if (dept.HasChild("rooms") && dept.Child("rooms").HasChildren)
+                {
+                    foreach (var room in dept.Child("rooms").Children)
+                    {
+                        rooms.Add(room.Value.ToString());
+                    }
+                }
+
+                result[deptKey] = rooms;
+            }
+
+            Debug.Log($"FirebaseManager: Fetched {result.Count} departments with room lists.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"FirebaseManager: Failed to fetch department-room list: {e.Message}");
+        }
+
+        return result;
+    }
+
     private string HashPassword(string password, string salt)
     {
         using (var sha256 = System.Security.Cryptography.SHA256.Create())

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Threading.Tasks;
+using Firebase.Database;
 
 // Assuming FacultyMemberData class is defined elsewhere
 // Assuming FirebaseManager class is defined elsewhere
@@ -51,6 +52,7 @@ public class FacultyPortalManager : MonoBehaviour
     public TextMeshProUGUI welcomeText;
     public TextMeshProUGUI currentLocationText;
     public TMP_Dropdown locationDropdown;
+    public TMP_Dropdown roomDropdown;
     public TextMeshProUGUI locationUpdateStatusText;
     public Button updateLocationButton; // Updates both location and availability
     public Button goToWayfindingButton;
@@ -63,6 +65,7 @@ public class FacultyPortalManager : MonoBehaviour
     #endregion
 
     #region Runtime State
+    private Dictionary<string, List<string>> departmentRoomMap = new();
     private FacultyMemberData currentLoggedInFacultyData;
     private List<PathPointData> availableEndPoints = new List<PathPointData>();
     private readonly List<string> availabilityStatuses = new List<string> { "Select Status...", "In Office", "Meeting/OB", "WFH", "On Leave", "Out" };
@@ -164,6 +167,8 @@ public class FacultyPortalManager : MonoBehaviour
     private void ShowLocationUpdatePanel()
     {
         HideAllPanels();
+        availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>();
+        PopulateLocationDropdown();
         if (locationUpdatePanel != null) locationUpdatePanel.SetActive(true);
         ClearStatusMessages();
         SetButtonInteractable(updateLocationButton, true);
@@ -207,7 +212,7 @@ public class FacultyPortalManager : MonoBehaviour
                 // Verify password against the stored hash using FirebaseManager
                 if (firebaseManager.VerifyPassword(faculty, password))
                 {
-                    LoginSuccess(faculty);
+                    await LoginSuccess(faculty);
                 }
                 else { LoginFail(facultyId, "Invalid Faculty ID or Password."); }
             }
@@ -317,8 +322,19 @@ public class FacultyPortalManager : MonoBehaviour
     {
         ClearStatusMessages();
         if (!EnsureLoggedIn(locationUpdateStatusText)) return;
-        string selectedLocationName = (locationDropdown.value > 0) ? locationDropdown.options[locationDropdown.value].text : null;
-        string selectedStatus = (availabilityDropdown.value > 0) ? availabilityDropdown.options[availabilityDropdown.value].text : null;
+        string selectedLocationName = null;
+        if (roomDropdown != null && roomDropdown.value > 0)
+        {
+            selectedLocationName = roomDropdown.options[roomDropdown.value].text;
+        }
+        else if (locationDropdown != null && locationDropdown.value > 0)
+        {
+            selectedLocationName = locationDropdown.options[locationDropdown.value].text;
+        }
+        string selectedStatus = (availabilityDropdown.value > 0)
+            ? availabilityDropdown.options[availabilityDropdown.value].text
+            : null;
+
 
         SetButtonInteractable(updateLocationButton, false); SetStatus(locationUpdateStatusText, "Updating...");
         string facultyId = currentLoggedInFacultyData.FacultyID;
@@ -399,15 +415,83 @@ public class FacultyPortalManager : MonoBehaviour
 #endif
     }
 
-    private void LoginSuccess(FacultyMemberData faculty)
+    private void PopulateDepartmentDropdown()
+    {
+        if (locationDropdown == null || departmentRoomMap == null) return;
+
+        locationDropdown.ClearOptions();
+        List<string> options = new() { "Select Department..." };
+        options.AddRange(departmentRoomMap.Keys);
+        locationDropdown.AddOptions(options);
+        locationDropdown.value = 0;
+        locationDropdown.RefreshShownValue();
+
+        locationDropdown.onValueChanged.RemoveAllListeners();
+        locationDropdown.onValueChanged.AddListener(OnDepartmentSelected);
+    }
+
+    private void OnDepartmentSelected(int index)
+    {
+        if (locationDropdown == null || roomDropdown == null) return;
+
+        roomDropdown.ClearOptions();
+        roomDropdown.interactable = false;
+
+        if (index == 0) return;
+
+        string selectedDept = locationDropdown.options[index].text;
+        if (!departmentRoomMap.ContainsKey(selectedDept)) return;
+
+        List<string> rooms = departmentRoomMap[selectedDept];
+        if (rooms == null || rooms.Count == 0) return;
+
+        List<string> roomOptions = new() { "Select Room..." };
+        roomOptions.AddRange(rooms);
+        roomDropdown.AddOptions(roomOptions);
+        roomDropdown.value = 0;
+        roomDropdown.RefreshShownValue();
+        roomDropdown.interactable = true;
+
+        if (rooms.Count == 1)
+        {
+            roomDropdown.value = 1;
+            roomDropdown.RefreshShownValue();
+        }
+    }
+
+    private async Task FetchDepartmentRoomsAndPopulate()
+    {
+        if (firebaseManager == null || !firebaseManager.IsInitialized)
+        {
+            Debug.LogError("FacultyPortalManager: FirebaseManager not initialized.");
+            return;
+        }
+
+        var result = await firebaseManager.FetchDepartmentRoomsAsync(); // Uses endPoints DB
+        departmentRoomMap = result ?? new Dictionary<string, List<string>>();
+        PopulateDepartmentDropdown();
+    }
+
+    private async Task LoginSuccess(FacultyMemberData faculty)
     {
         if (faculty == null) return; // Should not happen if called after successful login
         currentLoggedInFacultyData = faculty;
-        if (welcomeText != null) welcomeText.text = $"Welcome, {faculty.FullName ?? "N/A"}";
+
+        if (welcomeText != null)
+            welcomeText.text = $"Welcome, {faculty.FullName ?? "N/A"}";
+
         UpdateCurrentLocationDisplay(faculty.CurrentLocationName);
         PopulateLocationDropdown();
         SetAvailabilityDropdownSelection();
-        if (createPositionDropdown != null) SetDropdownSelection(createPositionDropdown, positionOptions, faculty.Position);
+
+        // Fetch department-room mapping from FirebaseManager
+        var result = await firebaseManager.FetchDepartmentRoomsAsync();
+        departmentRoomMap = result ?? new Dictionary<string, List<string>>();
+        PopulateDepartmentDropdown();
+
+        if (createPositionDropdown != null)
+            SetDropdownSelection(createPositionDropdown, positionOptions, faculty.Position);
+
         ShowLocationUpdatePanel();
     }
 

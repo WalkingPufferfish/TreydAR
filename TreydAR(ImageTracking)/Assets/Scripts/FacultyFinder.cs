@@ -226,11 +226,25 @@ public class FacultyFinder : MonoBehaviour
             HideFinder(); return;
         }
         PathPointData destinationPoint = databaseManager.GetPathPointByName(locationName);
+
+        // Fallback: try matching parent anchor if room not found
+        if (destinationPoint == null && locationName.Contains("-"))
+        {
+            string fallbackAnchor = locationName.Split('-')[0].Trim(); // e.g. "CNM"
+            destinationPoint = databaseManager.GetPathPointByName(fallbackAnchor);
+            if (destinationPoint != null)
+            {
+                Debug.LogWarning($"FacultyFinder: Room '{locationName}' not found. Falling back to department anchor '{fallbackAnchor}'.");
+                navigationManager?.UpdateStatus($"Note: Room '{locationName}' not mapped. Navigating to '{fallbackAnchor}' instead.");
+            }
+        }
+
         if (destinationPoint == null)
         {
             navigationManager?.UpdateStatus($"Error: Location '{locationName}' is invalid or missing from map.");
             HideFinder(); return;
         }
+
         navigationManager.StartNavigationToPoint(destinationPoint);
         HideFinder();
     }
