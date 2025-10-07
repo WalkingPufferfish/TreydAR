@@ -25,25 +25,20 @@ public class NavigationManager : MonoBehaviour
     public ARTrackedImageManager trackedImageManager;
     public ARAnchorManager anchorManager;
 
-    // <<< LEGACY >>>: Your original targetImageName is preserved but hidden from the Inspector.
-    // The new 'imageTargetDatabase' list below now controls the logic.
     [HideInInspector]
     public string targetImageName = "";
 
-    [Header("UI References")]
-    public TMP_Text textDisplay;
-
     [Header("Navigation Marker")]
-    public GameObject navigationMarkerPrefab;
-    private GameObject currentMarker;
+    [Tooltip("How quickly the map corrects its position when recalibrating. Lower is smoother.")]
+    [Range(0.01f, 0.2f)]
+    public float recalibrationSmoothing = 0.1f;
 
-    // <<< ADDED >>>: This new list is the core of the multi-target system.
     [Header("Multi-Target Setup")]
     [Tooltip("Define all your image targets and their corresponding anchor points within the map.")]
     public List<ImageTargetData> imageTargetDatabase;
 
     [Header("Environment Setup")]
-    [Tooltip("Drag the DISABLED Environment GameObject from your HIERARCHY here.")]
+    [Tooltip("Drag the DISABLED Environment PREFAB from your PROJECT folder here.")]
     public GameObject environmentSceneObject;
     public float environmentVerticalOffset = 0.0f;
     public GameObject ScanGuide_Image;
@@ -53,12 +48,16 @@ public class NavigationManager : MonoBehaviour
     public TMP_Dropdown destinationDropdown;
     public float recalculateDistanceThreshold = 1.0f;
     public float updateInterval = 0.25f;
+    [Tooltip("The distance (in meters) from the destination to trigger the 'arrived' message.")]
+    public float arrivalDistanceThreshold = 1.5f;
 
     [Header("UI Feedback")]
     public TextMeshProUGUI statusText;
     public GameObject navigationUIParent;
     [Tooltip("The button that appears to let the user confirm the map's placement.")]
     public Button confirmPlacementButton;
+    public Image recalibrationIndicator;
+    public TextMeshProUGUI distanceText;
 
     [Header("Faculty Finder Integration")]
     public Button findFacultyButton;
@@ -70,6 +69,8 @@ public class NavigationManager : MonoBehaviour
 
     #region Private State
     private Transform environmentOriginTransform;
+    private GameObject instantiatedEnvironment;
+    private Quaternion userSpawnRotation = Quaternion.identity;
     private PathVisualizer instantiatedPathVisualizer;
     private Vector3 currentTargetPosition;
     private Vector3 lastPathCalculationPosition;
@@ -87,7 +88,6 @@ public class NavigationManager : MonoBehaviour
     private ARAnchor currentAnchor;
     #endregion
 
-    // <<< ADDED >>>: A public method for the test helper script to check the script's state.
     public bool IsInitialized()
     {
         return isInitialized;
@@ -102,10 +102,6 @@ public class NavigationManager : MonoBehaviour
     void Start()
     {
         if (firebaseManager == null) { Debug.LogError("FirebaseManager not assigned!", this); enabled = false; return; }
-        if (environmentSceneObject != null)
-        {
-            environmentSceneObject.SetActive(false);
-        }
 
         if (confirmPlacementButton != null)
         {
@@ -131,10 +127,9 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
-
-    // A Coroutine to manage the fade out animation for Scan Guide
-    private System.Collections.IEnumerator FadeOutScanGuide(float duration = 0.5f)
+    private IEnumerator FadeOutScanGuide(float duration = 0.5f)
     {
+        if (scanGuideCanvasGroup == null) yield break;
         float elapsed = 0f;
         float startAlpha = scanGuideCanvasGroup.alpha;
 
@@ -151,8 +146,29 @@ public class NavigationManager : MonoBehaviour
         scanGuideCanvasGroup.blocksRaycasts = false;
     }
 
-    // <<< MODIFIED >>>: This method is updated to find the correct data from the database
-    // before calling the new core logic method. It no longer calls your old InitializeEnvironment.
+    private IEnumerator FlashIndicator()
+    {
+        if (recalibrationIndicator == null) yield break;
+
+        float t = 0;
+        while (t < 1)
+        {
+            t += Time.deltaTime * 4f;
+            recalibrationIndicator.color = new Color(recalibrationIndicator.color.r, recalibrationIndicator.color.g, recalibrationIndicator.color.b, Mathf.Lerp(0, 1, t));
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.5f);
+
+        t = 0;
+        while (t < 1)
+        {
+            t += Time.deltaTime * 2f;
+            recalibrationIndicator.color = new Color(recalibrationIndicator.color.r, recalibrationIndicator.color.g, recalibrationIndicator.color.b, Mathf.Lerp(1, 0, t));
+            yield return null;
+        }
+    }
+
     public void OnConfirmPlacementButtonPressed()
     {
         if (detectedImageForPlacement != null && detectedImageForPlacement.trackingState == TrackingState.Tracking)
@@ -188,7 +204,6 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
-    // <<< ADDED >>>: The new public method for the Editor Test Helper script to call.
     public void Test_InitializeEnvironment(string imageName)
     {
         if (isInitialized) return;
@@ -199,69 +214,46 @@ public class NavigationManager : MonoBehaviour
             Debug.LogError($"Test failed: Image name '{imageName}' not found in the database or its anchor point is null.");
             return;
         }
-        // <<< NEW, CORRECTED CODE >>>
 
-        // 1. Get the camera's forward direction.
         Vector3 cameraForward = arCamera.transform.forward;
-
-        // 2. Remove any vertical component (the tilt) by setting its Y value to 0.
         cameraForward.y = 0;
-
-        // 3. Create a new "flat" rotation that only looks along the horizontal plane.
-        // We normalize the vector to ensure it's a valid direction.
         Quaternion flatRotation = Quaternion.LookRotation(cameraForward.normalized);
-
-        // 4. Create the fake pose using the original position but the new FLAT rotation.
         Pose fakeRealWorldPose = new Pose(arCamera.transform.position + arCamera.transform.forward * 3, flatRotation);
         InitializeEnvironmentLogic(fakeRealWorldPose, targetData);
     }
 
-    // <<< REVISED & IMPROVED METHOD >>>
-    // This private method contains the core logic for alignment and setup.
-    // It is called by both the real AR confirmation and the editor test.
     private void InitializeEnvironmentLogic(Pose realWorldImagePose, ImageTargetData targetData)
     {
-        if (environmentSceneObject == null) { UpdateStatus("Error: Environment Scene Object Missing!"); return; }
+        if (environmentSceneObject == null) { UpdateStatus("Error: Environment Prefab Missing!"); return; }
         if (anchorManager == null) { UpdateStatus("Error: Anchor Manager Missing!"); return; }
         if (targetData.anchorPointInMap == null) { UpdateStatus("Error: Target data's Anchor Point is not set!"); return; }
 
         UpdateStatus("Initializing Environment...");
 
-        // --- START OF IMPROVED CALCULATION ---
+        instantiatedEnvironment = Instantiate(environmentSceneObject);
 
-        // 1. Get the real-world pose of the detected image. We use its position directly.
-        //    For rotation, we flatten it to ensure the map doesn't tilt with the camera.
+        // <<< THIS IS THE CRITICAL ADDITION >>>
+        // Record the user's horizontal rotation at the moment of spawning.
+        userSpawnRotation = Quaternion.Euler(0, arCamera.transform.eulerAngles.y, 0);
+        // <<< END ADDITION >>>
+
         Vector3 realWorldPosition = realWorldImagePose.position;
         Quaternion realWorldFlatRotation = Quaternion.Euler(0, realWorldImagePose.rotation.eulerAngles.y, 0);
         Pose realWorldAnchorPose = new Pose(realWorldPosition, realWorldFlatRotation);
 
-        // 2. Get the virtual anchor's pose *relative to its parent map*.
-        //    This is the "offset" of your anchor point from the map's origin (0,0,0).
         Pose virtualAnchorOffset = new Pose(targetData.anchorPointInMap.localPosition, targetData.anchorPointInMap.localRotation);
 
-        // 3. Calculate the pose of the MAP'S ORIGIN by transforming the real-world pose
-        //    by the *inverse* of the virtual anchor's offset.
-        //
-        //    Think of it like this:
-        //    "Start at the real-world image's location (realWorldAnchorPose),
-        //    then apply the transformation that takes you from the virtual anchor back to the map's origin (virtualAnchorOffset.Inverse())."
-        //
-        //    This is the key step to ensure the virtual anchor inside the map aligns perfectly with the real-world image.
         Pose mapOriginPose = realWorldAnchorPose.GetTransformedBy(virtualAnchorOffset.Inverse());
 
-        // --- END OF IMPROVED CALCULATION ---
-
-        // 4. Create the ARAnchor at the calculated map origin pose.
         GameObject anchorGO = new GameObject("EnvironmentAnchor");
         anchorGO.transform.SetPositionAndRotation(mapOriginPose.position, mapOriginPose.rotation);
         currentAnchor = anchorGO.AddComponent<ARAnchor>();
 
         if (currentAnchor != null)
         {
-            // 5. Parent the environment to the anchor. It should now be perfectly aligned.
-            environmentSceneObject.transform.SetParent(currentAnchor.transform, false); // 'false' ensures local transforms are preserved
-            environmentSceneObject.transform.localPosition = Vector3.zero;
-            environmentSceneObject.transform.localRotation = Quaternion.identity;
+            instantiatedEnvironment.transform.SetParent(currentAnchor.transform, false);
+            instantiatedEnvironment.transform.localPosition = Vector3.zero;
+            instantiatedEnvironment.transform.localRotation = Quaternion.identity;
             Debug.Log($"Map aligned via '{targetData.imageName}' and anchored successfully at calculated origin.");
         }
         else
@@ -269,109 +261,85 @@ public class NavigationManager : MonoBehaviour
             Debug.LogError("Failed to add ARAnchor component! Environment will not be placed.");
             UpdateStatus("Error: Could not anchor the environment.");
             Destroy(anchorGO);
+            Destroy(instantiatedEnvironment);
             return;
         }
 
-        environmentSceneObject.SetActive(true);
-        environmentOriginTransform = environmentSceneObject.transform;
+        instantiatedEnvironment.SetActive(true);
+        environmentOriginTransform = instantiatedEnvironment.transform;
 
-        NavMeshSurface navMeshSurface = environmentSceneObject.GetComponent<NavMeshSurface>();
+        NavMeshSurface navMeshSurface = instantiatedEnvironment.GetComponent<NavMeshSurface>();
         if (navMeshSurface != null)
         {
             navMeshSurface.BuildNavMesh();
             Debug.Log("Runtime NavMesh bake completed on scene object.");
+
+            Transform mapVisuals = environmentOriginTransform.Find("[MapVisuals]");
+            if (mapVisuals != null)
+            {
+                // Get ALL Renderer components on the visuals object and all of its children.
+                Renderer[] allRenderers = mapVisuals.GetComponentsInChildren<Renderer>();
+
+                // Loop through each renderer and disable it.
+                foreach (Renderer renderer in allRenderers)
+                {
+                    renderer.enabled = false;
+                }
+                Debug.Log($"Map visuals hidden by disabling {allRenderers.Length} renderers.");
+            }
+            else
+            {
+                Debug.LogWarning("Could not find '[MapVisuals]' child to hide. The whole map will be visible.");
+            }
         }
         else
         {
             Debug.LogError("FATAL: NavMeshSurface component not found on the environment object. Navigation will fail.");
         }
 
-        instantiatedPathVisualizer = environmentSceneObject.GetComponentInChildren<PathVisualizer>();
-        if (arrowGuide == null) arrowGuide = environmentSceneObject.GetComponentInChildren<DynamicArrowGuide>();
-        if (instantiatedPathVisualizer == null) { ResetToInitialState(); return; }
-        if (arrowGuide != null) arrowGuide.Initialize();
+        // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
+#if UNITY_EDITOR
+            instantiatedPathVisualizer = instantiatedEnvironment.GetComponentInChildren<PathVisualizer>();
+#endif
+
+        if (arrowGuide == null) arrowGuide = instantiatedEnvironment.GetComponentInChildren<DynamicArrowGuide>();
+
+        if (instantiatedPathVisualizer == null && Application.isEditor) { Debug.LogWarning("PathVisualizer not found. Debug line will not be drawn."); }
+
+        if (arrowGuide != null)
+        {
+            arrowGuide.arCamera = this.arCamera;
+            arrowGuide.Initialize();
+        }
 
         isInitialized = true;
         UpdateStatus("Environment Ready. Select Destination.");
         OnEnvironmentInitialized.Invoke();
         SetNavigationUIVisibility(true);
+
+        StartCoroutine(FlashIndicator());
     }
 
-    // <<< LEGACY >>>: Your original InitializeEnvironment method is preserved here exactly as you provided it.
-    // It is no longer called by the main logic flow.
+    public Quaternion GetUserSpawnRotation()
+    {
+        return userSpawnRotation;
+    }
+
+
+
     void InitializeEnvironment(ARTrackedImage trackedImage)
     {
-        if (environmentSceneObject == null) { UpdateStatus("Error: Environment Scene Object Missing!"); return; }
-        if (anchorManager == null) { UpdateStatus("Error: Anchor Manager Missing!"); return; }
-
-        UpdateStatus("Initializing Environment...");
-
-        Vector3 anchorPosition = trackedImage.transform.position + (Vector3.up * environmentVerticalOffset);
-        float yRotation = trackedImage.transform.rotation.eulerAngles.y;
-        Quaternion anchorRotation = Quaternion.Euler(0, yRotation, 0);
-
-        // This is the universally compatible way to create an anchor
-        GameObject anchorGO = new GameObject("EnvironmentAnchor");
-        anchorGO.transform.SetPositionAndRotation(anchorPosition, anchorRotation);
-        currentAnchor = anchorGO.AddComponent<ARAnchor>();
-
-        if (currentAnchor != null)
-        {
-            environmentSceneObject.transform.SetParent(currentAnchor.transform);
-            environmentSceneObject.transform.localPosition = Vector3.zero;
-            environmentSceneObject.transform.localRotation = Quaternion.identity;
-            Debug.Log("Successfully created an ARAnchor and parented environment.");
-        }
-        else
-        {
-            Debug.LogError("Failed to add ARAnchor component! Environment will not be placed.");
-            UpdateStatus("Error: Could not anchor the environment.");
-            Destroy(anchorGO);
-            return;
-        }
-
-        environmentSceneObject.SetActive(true);
-        environmentOriginTransform = environmentSceneObject.transform;
-
-        NavMeshSurface navMeshSurface = environmentSceneObject.GetComponent<NavMeshSurface>();
-        if (navMeshSurface != null)
-        {
-            navMeshSurface.BuildNavMesh();
-            Debug.Log("Runtime NavMesh bake completed on scene object.");
-        }
-        else
-        {
-            Debug.LogError("FATAL: NavMeshSurface component not found on the environment object. Navigation will fail.");
-            UpdateStatus("Error: Navigation setup invalid.");
-            return;
-        }
-
-        instantiatedPathVisualizer = environmentSceneObject.GetComponentInChildren<PathVisualizer>();
-        if (arrowGuide == null) arrowGuide = environmentSceneObject.GetComponentInChildren<DynamicArrowGuide>();
-        if (instantiatedPathVisualizer == null) { ResetToInitialState(); return; }
-        if (arrowGuide != null) arrowGuide.Initialize();
-
-        isInitialized = true;
-        UpdateStatus("Environment Ready. Select Destination.");
-        OnEnvironmentInitialized.Invoke();
-        SetNavigationUIVisibility(true);
+        // Legacy method, no changes needed as it's not called.
     }
 
     public void ResetToInitialState()
     {
         StopNavigation();
 
-        // <<< MODIFIED >>>: Logic updated slightly to safely un-parent the scene object before destroying the anchor.
-        if (environmentSceneObject != null)
+        if (instantiatedEnvironment != null)
         {
-            environmentSceneObject.transform.SetParent(null, true);
-
-            NavMeshSurface navMeshSurface = environmentSceneObject.GetComponent<NavMeshSurface>();
-            if (navMeshSurface != null)
-            {
-                navMeshSurface.RemoveData();
-            }
-            environmentSceneObject.SetActive(false);
+            Destroy(instantiatedEnvironment);
+            instantiatedEnvironment = null;
         }
 
         if (currentAnchor != null)
@@ -410,16 +378,18 @@ public class NavigationManager : MonoBehaviour
         isStudentModeActive = true;
         SetNavigationUIVisibility(true);
         UpdateStatus("Loading Destinations...");
+        availableDestinations = await firebaseManager.GetAllEndPointsAsync();
         await LoadDestinations();
         if (availableDestinations.Count > 0) UpdateStatus("Scan a target image on campus.");
     }
     async Task LoadDestinations()
     {
+        if (destinationDropdown == null) return;
         destinationDropdown.ClearOptions();
 
         var options = new List<TMP_Dropdown.OptionData>
         {
-            new TMP_Dropdown.OptionData("Select Destination...") // Null choice
+            new TMP_Dropdown.OptionData("Select Destination...")
         };
 
         if (availableDestinations != null && availableDestinations.Count > 0)
@@ -437,62 +407,75 @@ public class NavigationManager : MonoBehaviour
         destinationDropdown.RefreshShownValue();
     }
 
-    // <<< MODIFIED >>>: The logic is updated to check against the imageTargetDatabase list.
     void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
     {
-        if (!isStudentModeActive || isInitialized) return;
-
-        ARTrackedImage imageToUse = null;
-
         var allTrackedImages = eventArgs.added.Concat(eventArgs.updated);
+
         foreach (var trackedImage in allTrackedImages)
         {
-            if (trackedImage.trackingState == TrackingState.Tracking &&
-                imageTargetDatabase.Any(data => data.imageName == trackedImage.referenceImage.name))
+            if (trackedImage.trackingState == TrackingState.Tracking)
             {
-                imageToUse = trackedImage;
-                break;
+                ImageTargetData targetData = imageTargetDatabase.FirstOrDefault(data => data.imageName == trackedImage.referenceImage.name);
+
+                if (targetData != null)
+                {
+                    if (!isInitialized)
+                    {
+                        detectedImageForPlacement = trackedImage;
+                        if (confirmPlacementButton != null && !confirmPlacementButton.gameObject.activeInHierarchy)
+                        {
+                            confirmPlacementButton.gameObject.SetActive(true);
+                            UpdateStatus($"Image '{trackedImage.referenceImage.name}' found! Press button to place map.");
+                        }
+                    }
+                    else
+                    {
+                        RecalibrateMapPosition(trackedImage, targetData);
+                    }
+                }
             }
         }
 
-        if (imageToUse != null)
-        {
-            detectedImageForPlacement = imageToUse;
-            if (confirmPlacementButton != null && !confirmPlacementButton.gameObject.activeInHierarchy)
-            {
-                confirmPlacementButton.gameObject.SetActive(true);
-                UpdateStatus($"Image '{imageToUse.referenceImage.name}' found! Position your camera and press the button.");
-            }
-        }
-
-        if (detectedImageForPlacement != null)
+        if (!isInitialized && detectedImageForPlacement != null)
         {
             bool wasLost = eventArgs.removed.Any(removedImage => removedImage.trackableId == detectedImageForPlacement.trackableId);
-
             if (wasLost || detectedImageForPlacement.trackingState != TrackingState.Tracking)
             {
                 detectedImageForPlacement = null;
-                if (confirmPlacementButton != null)
-                {
-                    confirmPlacementButton.gameObject.SetActive(false);
-                }
+                if (confirmPlacementButton != null) confirmPlacementButton.gameObject.SetActive(false);
                 UpdateStatus("Scan Target Image...");
             }
         }
+    }
+
+    private void RecalibrateMapPosition(ARTrackedImage trackedImage, ImageTargetData targetData)
+    {
+        if (currentAnchor == null) return;
+
+        Pose realWorldAnchorPose = new Pose(trackedImage.transform.position, trackedImage.transform.rotation);
+        realWorldAnchorPose.rotation = Quaternion.Euler(0, realWorldAnchorPose.rotation.eulerAngles.y, 0);
+
+        Pose virtualAnchorOffset = new Pose(targetData.anchorPointInMap.localPosition, targetData.anchorPointInMap.localRotation);
+
+        Pose correctMapOriginPose = realWorldAnchorPose.GetTransformedBy(virtualAnchorOffset.Inverse());
+
+        currentAnchor.transform.position = Vector3.Lerp(currentAnchor.transform.position, correctMapOriginPose.position, recalibrationSmoothing);
+        currentAnchor.transform.rotation = Quaternion.Slerp(currentAnchor.transform.rotation, correctMapOriginPose.rotation, recalibrationSmoothing);
+
+        UpdateStatus($"Recalibrating map using '{targetData.imageName}'...");
+        StartCoroutine(FlashIndicator());
     }
 
     void HandleDestinationSelection(int index)
     {
         selectedDestinationIndex = index;
 
-        // Skip placeholder
-        if (index == 0 || destinationDropdown.options[index].text == "Select Department")
+        if (index == 0)
         {
             StopNavigation();
             return;
         }
 
-        // Adjust index to match availableDestinations
         int adjustedIndex = index - 1;
 
         if (adjustedIndex >= 0 && adjustedIndex < availableDestinations.Count)
@@ -505,14 +488,45 @@ public class NavigationManager : MonoBehaviour
             StopNavigation();
         }
     }
+
     void Update()
     {
-        if (!isStudentModeActive || !isInitialized || !navigationActive) return;
-        timeSinceLastUpdate += Time.deltaTime;
-        if (timeSinceLastUpdate >= updateInterval) { timeSinceLastUpdate = 0f; UpdateUserPositionAndPath(); }
+        if (!isStudentModeActive || !isInitialized) return;
+
+        if (navigationActive)
+        {
+            timeSinceLastUpdate += Time.deltaTime;
+            if (timeSinceLastUpdate >= updateInterval)
+            {
+                timeSinceLastUpdate = 0f;
+                UpdateUserPositionAndPath();
+            }
+
+            if (currentPathCorners != null && currentPathCorners.Count > 0)
+            {
+                Vector3 userPos = arCamera.transform.position;
+                Vector3 finalDestination = currentTargetPosition;
+
+                float distanceToTarget = Vector3.Distance(userPos, finalDestination);
+
+                if (distanceText != null)
+                {
+                    distanceText.text = $"{distanceToTarget:F1}m";
+                }
+
+                if (distanceToTarget < arrivalDistanceThreshold)
+                {
+                    string destinationName = GetSelectedDestinationName();
+                    StopNavigation();
+                    UpdateStatus($"You have arrived at {destinationName}!");
+                }
+            }
+        }
     }
+
     void UpdateUserPositionAndPath()
     {
+        if (environmentOriginTransform == null) return;
         Vector3 userPos = arCamera.transform.position;
         bool pathIsEmpty = currentPathCorners == null || currentPathCorners.Count == 0;
         bool userHasMoved = Vector3.Distance(userPos, lastPathCalculationPosition) > recalculateDistanceThreshold;
@@ -523,14 +537,24 @@ public class NavigationManager : MonoBehaviour
             {
                 currentPathCorners = navMeshPath.corners.ToList();
                 lastPathCalculationPosition = userPos;
-                instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
+
+                // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
+#if UNITY_EDITOR
+                    instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
+#endif
+
                 arrowGuide?.SetPath(currentPathCorners);
                 UpdateStatus($"Navigating to {GetSelectedDestinationName()}");
             }
             else
             {
                 currentPathCorners.Clear();
-                instantiatedPathVisualizer?.ClearPath();
+
+                // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
+#if UNITY_EDITOR
+                    instantiatedPathVisualizer?.ClearPath();
+#endif
+
                 arrowGuide?.ClearArrow();
                 UpdateStatus($"Cannot find path to {GetSelectedDestinationName()}");
             }
@@ -541,7 +565,7 @@ public class NavigationManager : MonoBehaviour
     public void StartNavigationToPoint(PathPointData destinationData)
     {
         Debug.Log($"Starting navigation to: {destinationData.Name}");
-        if (!isInitialized || destinationData == null) { StopNavigation(); return; }
+        if (!isInitialized || destinationData == null || environmentOriginTransform == null) { StopNavigation(); return; }
         Vector3 destinationWorldPosition = environmentOriginTransform.TransformPoint(destinationData.Position);
         if (NavMesh.SamplePosition(destinationWorldPosition, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
         {
@@ -556,69 +580,26 @@ public class NavigationManager : MonoBehaviour
             StopNavigation();
         }
     }
-    /// <summary>
-    /// Called by RoomSearchUIController when a room is selected from the dropdown.
-    /// Finds the corresponding anchor and places a navigation marker.
-    /// </summary>
-    public void NavigateToRoom(string roomName)
-    {
-        Debug.Log("Navigating to room: " + roomName);
-
-        // 1. Look up the room's anchor or endpoint
-        Transform targetAnchor = FindRoomAnchor(roomName);
-        if (targetAnchor == null)
-        {
-            Debug.LogWarning($"Room anchor not found for: {roomName}");
-            if (textDisplay != null)
-                textDisplay.text = $"Room '{roomName}' not found.";
-            return;
-        }
-
-        // 2. Trigger AR guidance (e.g., place marker or path)
-        PlaceNavigationMarker(targetAnchor.position);
-        currentTargetPosition = targetAnchor.position;
-        navigationActive = true;
-        forcePathRecalculation = true;
-
-        // 3. Optionally update UI or feedback
-        if (textDisplay != null)
-            textDisplay.text = $"Navigating to {roomName}...";
-    }
-
-    /// <summary>
-    /// Finds a room anchor by name. Assumes GameObjects are named after room names.
-    /// </summary>
-    private Transform FindRoomAnchor(string roomName)
-    {
-        GameObject anchorObj = GameObject.Find(roomName);
-        return anchorObj != null ? anchorObj.transform : null;
-    }
-
-    /// <summary>
-    /// Places or updates the navigation marker at the target position.
-    /// </summary>
-    private void PlaceNavigationMarker(Vector3 position)
-    {
-        if (navigationMarkerPrefab == null)
-        {
-            Debug.LogWarning("Navigation marker prefab not assigned.");
-            return;
-        }
-
-        if (currentMarker != null)
-            Destroy(currentMarker);
-
-        currentMarker = Instantiate(navigationMarkerPrefab, position, Quaternion.identity);
-    }
 
     public void StopNavigation()
     {
         navigationActive = false;
         forcePathRecalculation = false;
         if (currentPathCorners != null) currentPathCorners.Clear();
-        instantiatedPathVisualizer?.ClearPath();
+
+        // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
+#if UNITY_EDITOR
+            instantiatedPathVisualizer?.ClearPath();
+#endif
+
         arrowGuide?.ClearArrow();
         if (isInitialized && isStudentModeActive) UpdateStatus("Navigation Stopped.");
+
+        if (distanceText != null)
+        {
+            distanceText.text = "";
+        }
+
         if (destinationDropdown != null) destinationDropdown.value = 0;
         OnNavigationStopped.Invoke();
     }
@@ -631,8 +612,6 @@ public class NavigationManager : MonoBehaviour
     }
     public void UpdateStatus(string message) { if (statusText != null) { statusText.text = message; } }
 
-    // <<< LEGACY >>>: Your original IsTargetImage method is preserved here exactly as you provided it.
-    // It is no longer called by the main logic flow.
     bool IsTargetImage(ARTrackedImage image) => string.IsNullOrEmpty(targetImageName) || image.referenceImage.name == targetImageName;
 
     string GetSelectedDestinationName() => selectedDestinationIndex > 0 && selectedDestinationIndex - 1 < availableDestinations.Count ? availableDestinations[selectedDestinationIndex - 1].Name : "Target";

@@ -8,6 +8,7 @@ public class DynamicArrowGuide : MonoBehaviour
     [Header("References")]
     public GameObject arrowPrefab;
     public Camera arCamera;
+    private NavigationManager navigationManager;
 
     [Header("Visual Settings")]
     public float arrowYOffset = 0.1f;
@@ -18,16 +19,29 @@ public class DynamicArrowGuide : MonoBehaviour
     private GameObject instantiatedArrow;
     private List<Vector3> currentPath;
     private int currentPathIndex = 0;
-    private Vector3 smoothedArrowPosition;
-    private Quaternion smoothedArrowRotation;
+    private Vector3 smoothedArrowPosition; // No longer used for positioning, but kept for reference
+    private Quaternion smoothedArrowRotation; // No longer used for smoothing, but kept for reference
     private bool isInitialized = false;
     private bool isArrowVisible = false;
 
     public void Initialize()
     {
         if (isInitialized) return;
-        if (arrowPrefab == null || arCamera == null) return;
-        instantiatedArrow = Instantiate(arrowPrefab, transform);
+        if (arrowPrefab == null || arCamera == null)
+        {
+            Debug.LogError("ArrowGuide cannot initialize: Prefab or Camera is missing!");
+            return;
+        }
+
+        navigationManager = FindObjectOfType<NavigationManager>();
+        // <<< MODIFICATION START: Make arrow a child of the camera for stationary behavior >>>
+        // Original line: instantiatedArrow = Instantiate(arrowPrefab, transform);
+        instantiatedArrow = Instantiate(arrowPrefab, arCamera.transform);
+
+        // Set its fixed local position relative to the camera
+        instantiatedArrow.transform.localPosition = new Vector3(0, arrowYOffset, forwardOffset);
+        // <<< MODIFICATION END >>>
+
         HideArrow();
         isInitialized = true;
     }
@@ -74,18 +88,41 @@ public class DynamicArrowGuide : MonoBehaviour
         currentPathIndex = bestIndex;
     }
 
+    // <<< MODIFICATION START: Simplified transform update for stationary arrow >>>
     private void UpdateArrowTransform(Vector3 fromPos, Vector3 toPos)
     {
-        Vector3 basePosition = arCamera.transform.position + Vector3.up * arrowYOffset;
-        Vector3 targetDirection = (toPos - arCamera.transform.position); targetDirection.y = 0;
-        Vector3 targetPosition = basePosition + targetDirection.normalized * forwardOffset;
-        Vector3 lookDirection = (toPos - fromPos); lookDirection.y = 0;
-        Quaternion targetRotation = (lookDirection.sqrMagnitude > 0.001f) ? Quaternion.LookRotation(lookDirection) : smoothedArrowRotation;
+        // --- 1. Calculate the raw look direction in World Space ---
+        Vector3 lookDirectionWorld = (toPos - fromPos);
+        lookDirectionWorld.y = 0; // Flatten the vector to act like a compass
 
-        smoothedArrowPosition = Vector3.Lerp(instantiatedArrow.transform.position, targetPosition, smoothingFactor);
-        smoothedArrowRotation = Quaternion.Slerp(instantiatedArrow.transform.rotation, targetRotation, smoothingFactor);
-        instantiatedArrow.transform.SetPositionAndRotation(smoothedArrowPosition, smoothedArrowRotation);
+        // --- 2. Get the User's Spawn Rotation Offset ---
+        Quaternion spawnRotationOffset = Quaternion.identity;
+        if (navigationManager != null)
+        {
+            spawnRotationOffset = navigationManager.GetUserSpawnRotation();
+        }
+
+        // --- 3. THIS IS THE CRITICAL FIX: Convert the World Direction to User's Local Direction ---
+        // We rotate the world direction vector by the *inverse* of the user's spawn rotation.
+        // This effectively "un-rotates" the world so that the user's original "forward" becomes the new "forward".
+        Vector3 lookDirectionLocal = Quaternion.Inverse(spawnRotationOffset) * lookDirectionWorld;
+
+        // --- 4. Create the final rotation from the corrected local direction ---
+        Quaternion targetRotation;
+        if (lookDirectionLocal.sqrMagnitude > 0.001f)
+        {
+            targetRotation = Quaternion.LookRotation(lookDirectionLocal);
+        }
+        else
+        {
+            targetRotation = instantiatedArrow.transform.localRotation; // Keep current rotation
+        }
+
+        // --- 5. Smoothly Apply the Rotation ---
+        // We use localRotation because the arrow is a child of the camera.
+        instantiatedArrow.transform.localRotation = Quaternion.Slerp(instantiatedArrow.transform.localRotation, targetRotation, smoothingFactor);
     }
+    // <<< MODIFICATION END >>>
 
     public void ClearArrow() { HideArrow(); currentPath = null; }
     private void ShowArrow() { if (instantiatedArrow != null && !isArrowVisible) { instantiatedArrow.SetActive(true); isArrowVisible = true; } }
