@@ -420,11 +420,23 @@ public class FacultyPortalManager : MonoBehaviour
         if (locationDropdown == null || departmentRoomMap == null) return;
 
         locationDropdown.ClearOptions();
+
+        // Filter out keys that look like room names (contain dash or "Room")
+        List<string> filteredDepartments = departmentRoomMap.Keys
+            .Where(dept => !string.IsNullOrEmpty(dept) &&
+                           !dept.Contains("-") &&
+                           !dept.ToLowerInvariant().Contains("room"))
+            .ToList();
+
         List<string> options = new() { "Select Department..." };
-        options.AddRange(departmentRoomMap.Keys);
+        options.AddRange(filteredDepartments);
         locationDropdown.AddOptions(options);
+
         locationDropdown.value = 0;
         locationDropdown.RefreshShownValue();
+
+        roomDropdown.ClearOptions();
+        roomDropdown.interactable = false;
 
         locationDropdown.onValueChanged.RemoveAllListeners();
         locationDropdown.onValueChanged.AddListener(OnDepartmentSelected);
@@ -437,14 +449,27 @@ public class FacultyPortalManager : MonoBehaviour
         roomDropdown.ClearOptions();
         roomDropdown.interactable = false;
 
-        if (index == 0) return;
+        if (index == 0)
+        {
+            SetStatus(locationUpdateStatusText, "Please select a valid department.");
+            return;
+        }
 
         string selectedDept = locationDropdown.options[index].text;
-        if (!departmentRoomMap.ContainsKey(selectedDept)) return;
+        if (!departmentRoomMap.ContainsKey(selectedDept))
+        {
+            SetStatus(locationUpdateStatusText, $"Department '{selectedDept}' not found.");
+            return;
+        }
 
         List<string> rooms = departmentRoomMap[selectedDept];
-        if (rooms == null || rooms.Count == 0) return;
+        if (rooms == null || rooms.Count == 0)
+        {
+            SetStatus(locationUpdateStatusText, $"No rooms found for {selectedDept}.");
+            return;
+        }
 
+        // Populate room dropdown
         List<string> roomOptions = new() { "Select Room..." };
         roomOptions.AddRange(rooms);
         roomDropdown.AddOptions(roomOptions);
@@ -452,11 +477,7 @@ public class FacultyPortalManager : MonoBehaviour
         roomDropdown.RefreshShownValue();
         roomDropdown.interactable = true;
 
-        if (rooms.Count == 1)
-        {
-            roomDropdown.value = 1;
-            roomDropdown.RefreshShownValue();
-        }
+        SetStatus(locationUpdateStatusText, $"Rooms for {selectedDept} loaded.");
     }
 
     private async Task FetchDepartmentRoomsAndPopulate()
@@ -503,25 +524,63 @@ public class FacultyPortalManager : MonoBehaviour
 
     private void PopulateLocationDropdown()
     {
-        if (locationDropdown == null || databaseManager == null) { Debug.LogError("PopulateLocationDropdown: Refs missing."); return; }
-        try { availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>(); }
-        catch (Exception e) { Debug.LogError($"SQLite error: {e.Message}"); availableEndPoints = new List<PathPointData>(); }
+        if (locationDropdown == null || databaseManager == null)
+        {
+            Debug.LogError("PopulateLocationDropdown: Refs missing.");
+            return;
+        }
+
+        try
+        {
+            availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SQLite error: {e.Message}");
+            availableEndPoints = new List<PathPointData>();
+        }
+
+        // Filter out room-like entries BEFORE populating
+        List<PathPointData> filteredEndPoints = availableEndPoints
+            .Where(p => p != null &&
+                        !string.IsNullOrEmpty(p.Name) &&
+                        !p.Name.Contains("-") &&
+                        !p.Name.ToLowerInvariant().Contains("room"))
+            .ToList();
+
         locationDropdown.ClearOptions();
-        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData> { new TMP_Dropdown.OptionData("Select Location...") };
+        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
+    {
+        new TMP_Dropdown.OptionData("Select Location...")
+    };
+
         int selectedIndex = 0;
         string currentLocation = currentLoggedInFacultyData?.CurrentLocationName;
-        for (int i = 0; i < availableEndPoints.Count; i++)
+
+        foreach (var point in filteredEndPoints)
         {
-            PathPointData point = availableEndPoints[i];
-            if (point != null && !string.IsNullOrEmpty(point.Name))
+            options.Add(new TMP_Dropdown.OptionData(point.Name));
+            if (!string.IsNullOrEmpty(currentLocation) &&
+                point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase))
             {
-                options.Add(new TMP_Dropdown.OptionData(point.Name));
-                if (!string.IsNullOrEmpty(currentLocation) && point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase)) { selectedIndex = i + 1; }
+                selectedIndex = options.Count - 1;
             }
         }
-        if (options.Count == 1) { options.Clear(); options.Add(new TMP_Dropdown.OptionData("No Locations Available")); locationDropdown.interactable = false; }
-        else { locationDropdown.interactable = true; }
-        locationDropdown.options = options; locationDropdown.value = selectedIndex; locationDropdown.RefreshShownValue();
+
+        if (options.Count == 1)
+        {
+            options.Clear();
+            options.Add(new TMP_Dropdown.OptionData("No Locations Available"));
+            locationDropdown.interactable = false;
+        }
+        else
+        {
+            locationDropdown.interactable = true;
+        }
+
+        locationDropdown.options = options;
+        locationDropdown.value = selectedIndex;
+        locationDropdown.RefreshShownValue();
     }
 
     private void UpdateCurrentLocationDisplay(string locationName)

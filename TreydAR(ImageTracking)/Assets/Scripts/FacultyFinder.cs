@@ -146,12 +146,24 @@ public class FacultyFinder : MonoBehaviour
 
     public void FetchDepartmentRoomData(System.Action<Dictionary<string, DepartmentData>> callback)
     {
-        FirebaseDatabase.DefaultInstance.GetReference("departments").GetValueAsync().ContinueWith(task => {
+        FirebaseDatabase.DefaultInstance.GetReference("departments").GetValueAsync().ContinueWith(task =>
+        {
             var result = new Dictionary<string, DepartmentData>();
             DataSnapshot snapshot = task.Result;
+
             foreach (var dept in snapshot.Children)
             {
                 string deptName = dept.Key;
+
+                // Log and skip invalid department keys
+                if (deptName.Contains("-") || deptName.ToLowerInvariant().Contains("room"))
+                {
+                    Debug.LogWarning($"Skipping invalid department key: {deptName}");
+                    continue;
+                }
+
+                if (!dept.HasChild("rooms")) continue;
+
                 string anchor = dept.Child("anchor").Value?.ToString();
                 List<string> rooms = new();
                 foreach (var room in dept.Child("rooms").Children)
@@ -159,6 +171,7 @@ public class FacultyFinder : MonoBehaviour
 
                 result[deptName] = new DepartmentData { anchor = anchor, rooms = rooms };
             }
+
             callback?.Invoke(result);
         });
     }
