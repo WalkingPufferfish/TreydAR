@@ -18,7 +18,7 @@ public class NavigationManager : MonoBehaviour
     #region Inspector Fields
     [Header("Core Components")]
     public Camera arCamera;
-    public DynamicArrowGuide arrowGuide;
+    public DynamicArrowGuide arrowGuide; // Kept in Inspector, but logic is disabled
     public FirebaseManager firebaseManager;
 
     [Header("AR Foundation")]
@@ -169,38 +169,41 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+    // <<< MODIFICATION: This button is now the central point for manual recalibration >>>
     public void OnConfirmPlacementButtonPressed()
     {
-        if (detectedImageForPlacement != null && detectedImageForPlacement.trackingState == TrackingState.Tracking)
+        if (detectedImageForPlacement == null || detectedImageForPlacement.trackingState != TrackingState.Tracking)
         {
-            ImageTargetData targetData = imageTargetDatabase.FirstOrDefault(data => data.imageName == detectedImageForPlacement.referenceImage.name);
+            UpdateStatus("Target image lost. Please scan again.");
+            if (confirmPlacementButton != null) confirmPlacementButton.gameObject.SetActive(false);
+            return;
+        }
 
-            if (targetData != null && targetData.anchorPointInMap != null)
-            {
-                InitializeEnvironmentLogic(new Pose(detectedImageForPlacement.transform.position, detectedImageForPlacement.transform.rotation), targetData);
-                if (confirmPlacementButton != null)
-                {
-                    confirmPlacementButton.gameObject.SetActive(false);
-                }
+        ImageTargetData targetData = imageTargetDatabase.FirstOrDefault(data => data.imageName == detectedImageForPlacement.referenceImage.name);
+        if (targetData == null || targetData.anchorPointInMap == null)
+        {
+            UpdateStatus($"Error: Scanned image '{detectedImageForPlacement.referenceImage.name}' is not defined in the database.");
+            return;
+        }
 
-                if (ScanGuide_Image != null)
-                {
-                    StartCoroutine(FadeOutScanGuide());
-                }
-            }
-            else
-            {
-                UpdateStatus($"Error: Scanned image '{detectedImageForPlacement.referenceImage.name}' is not defined in the database.");
-            }
+        // --- CORE DECISION: Initialize or Recalibrate? ---
+        if (!isInitialized)
+        {
+            InitializeEnvironmentLogic(new Pose(detectedImageForPlacement.transform.position, detectedImageForPlacement.transform.rotation), targetData);
         }
         else
         {
-            UpdateStatus("Target image lost. Please scan again.");
-            if (confirmPlacementButton != null)
-            {
-                confirmPlacementButton.gameObject.SetActive(false);
-            }
-            detectedImageForPlacement = null;
+            RecalibrateMapPosition(detectedImageForPlacement, targetData);
+        }
+
+        if (confirmPlacementButton != null)
+        {
+            confirmPlacementButton.gameObject.SetActive(false);
+        }
+
+        if (ScanGuide_Image != null && !isInitialized)
+        {
+            StartCoroutine(FadeOutScanGuide());
         }
     }
 
@@ -231,11 +234,7 @@ public class NavigationManager : MonoBehaviour
         UpdateStatus("Initializing Environment...");
 
         instantiatedEnvironment = Instantiate(environmentSceneObject);
-
-        // <<< THIS IS THE CRITICAL ADDITION >>>
-        // Record the user's horizontal rotation at the moment of spawning.
         userSpawnRotation = Quaternion.Euler(0, arCamera.transform.eulerAngles.y, 0);
-        // <<< END ADDITION >>>
 
         Vector3 realWorldPosition = realWorldImagePose.position;
         Quaternion realWorldFlatRotation = Quaternion.Euler(0, realWorldImagePose.rotation.eulerAngles.y, 0);
@@ -277,10 +276,7 @@ public class NavigationManager : MonoBehaviour
             Transform mapVisuals = environmentOriginTransform.Find("[MapVisuals]");
             if (mapVisuals != null)
             {
-                // Get ALL Renderer components on the visuals object and all of its children.
                 Renderer[] allRenderers = mapVisuals.GetComponentsInChildren<Renderer>();
-
-                // Loop through each renderer and disable it.
                 foreach (Renderer renderer in allRenderers)
                 {
                     renderer.enabled = false;
@@ -297,20 +293,19 @@ public class NavigationManager : MonoBehaviour
             Debug.LogError("FATAL: NavMeshSurface component not found on the environment object. Navigation will fail.");
         }
 
-        // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
-#if UNITY_EDITOR
-            instantiatedPathVisualizer = instantiatedEnvironment.GetComponentInChildren<PathVisualizer>();
-#endif
+        // <<< MODIFICATION: Find the PathVisualizer in all builds >>>
+        instantiatedPathVisualizer = instantiatedEnvironment.GetComponentInChildren<PathVisualizer>();
 
-        if (arrowGuide == null) arrowGuide = instantiatedEnvironment.GetComponentInChildren<DynamicArrowGuide>();
+        // <<< MODIFICATION: Arrow Guide logic is ignored >>>
+        // if (arrowGuide == null) arrowGuide = instantiatedEnvironment.GetComponentInChildren<DynamicArrowGuide>();
 
-        if (instantiatedPathVisualizer == null && Application.isEditor) { Debug.LogWarning("PathVisualizer not found. Debug line will not be drawn."); }
+        if (instantiatedPathVisualizer == null) { Debug.LogWarning("PathVisualizer not found. Line will not be drawn."); }
 
-        if (arrowGuide != null)
-        {
-            arrowGuide.arCamera = this.arCamera;
-            arrowGuide.Initialize();
-        }
+        // if (arrowGuide != null)
+        // {
+        //     arrowGuide.arCamera = this.arCamera;
+        //     arrowGuide.Initialize();
+        // }
 
         isInitialized = true;
         UpdateStatus("Environment Ready. Select Destination.");
@@ -325,11 +320,9 @@ public class NavigationManager : MonoBehaviour
         return userSpawnRotation;
     }
 
-
-
     void InitializeEnvironment(ARTrackedImage trackedImage)
     {
-        // Legacy method, no changes needed as it's not called.
+        // Legacy method
     }
 
     public void ResetToInitialState()
@@ -407,42 +400,40 @@ public class NavigationManager : MonoBehaviour
         destinationDropdown.RefreshShownValue();
     }
 
+    // <<< MODIFICATION #3: This method now only shows the button, no automatic recalibration >>>
     void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
     {
-        var allTrackedImages = eventArgs.added.Concat(eventArgs.updated);
+        ARTrackedImage imageToUse = null;
 
+        var allTrackedImages = eventArgs.added.Concat(eventArgs.updated);
         foreach (var trackedImage in allTrackedImages)
         {
-            if (trackedImage.trackingState == TrackingState.Tracking)
+            if (trackedImage.trackingState == TrackingState.Tracking &&
+                imageTargetDatabase.Any(data => data.imageName == trackedImage.referenceImage.name))
             {
-                ImageTargetData targetData = imageTargetDatabase.FirstOrDefault(data => data.imageName == trackedImage.referenceImage.name);
-
-                if (targetData != null)
-                {
-                    if (!isInitialized)
-                    {
-                        detectedImageForPlacement = trackedImage;
-                        if (confirmPlacementButton != null && !confirmPlacementButton.gameObject.activeInHierarchy)
-                        {
-                            confirmPlacementButton.gameObject.SetActive(true);
-                            UpdateStatus($"Image '{trackedImage.referenceImage.name}' found! Press button to place map.");
-                        }
-                    }
-                    else
-                    {
-                        RecalibrateMapPosition(trackedImage, targetData);
-                    }
-                }
+                imageToUse = trackedImage;
+                break;
             }
         }
 
-        if (!isInitialized && detectedImageForPlacement != null)
+        if (imageToUse != null)
         {
-            bool wasLost = eventArgs.removed.Any(removedImage => removedImage.trackableId == detectedImageForPlacement.trackableId);
-            if (wasLost || detectedImageForPlacement.trackingState != TrackingState.Tracking)
+            detectedImageForPlacement = imageToUse;
+            if (confirmPlacementButton != null && !confirmPlacementButton.gameObject.activeInHierarchy)
             {
-                detectedImageForPlacement = null;
-                if (confirmPlacementButton != null) confirmPlacementButton.gameObject.SetActive(false);
+                confirmPlacementButton.gameObject.SetActive(true);
+                UpdateStatus($"Target '{imageToUse.referenceImage.name}' found. Press button to align map.");
+            }
+        }
+        else
+        {
+            detectedImageForPlacement = null;
+            if (confirmPlacementButton != null)
+            {
+                confirmPlacementButton.gameObject.SetActive(false);
+            }
+            if (!isInitialized)
+            {
                 UpdateStatus("Scan Target Image...");
             }
         }
@@ -538,29 +529,35 @@ public class NavigationManager : MonoBehaviour
                 currentPathCorners = navMeshPath.corners.ToList();
                 lastPathCalculationPosition = userPos;
 
-                // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
-#if UNITY_EDITOR
-                    instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
-#endif
+                // <<< MODIFICATION: Re-enable line drawing >>>
+                instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
 
-                arrowGuide?.SetPath(currentPathCorners);
+                // <<< MODIFICATION: Arrow logic is ignored >>>
+                // if (arrowGuide != null)
+                // {
+                //     arrowGuide.arCamera = this.arCamera;
+                //     arrowGuide.Initialize(); 
+                //     arrowGuide.SetPath(currentPathCorners);
+                // }
+
                 UpdateStatus($"Navigating to {GetSelectedDestinationName()}");
             }
             else
             {
                 currentPathCorners.Clear();
 
-                // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
-#if UNITY_EDITOR
-                    instantiatedPathVisualizer?.ClearPath();
-#endif
+                // <<< MODIFICATION: Re-enable line clearing >>>
+                instantiatedPathVisualizer?.ClearPath();
 
-                arrowGuide?.ClearArrow();
+                // <<< MODIFICATION: Arrow logic is ignored >>>
+                // arrowGuide?.ClearArrow();
                 UpdateStatus($"Cannot find path to {GetSelectedDestinationName()}");
             }
             forcePathRecalculation = false;
         }
-        if (currentPathCorners != null && currentPathCorners.Count > 0) { arrowGuide?.UpdateArrow(userPos, currentPathCorners); }
+
+        // <<< MODIFICATION: Arrow logic is ignored >>>
+        // if (currentPathCorners != null && currentPathCorners.Count > 0) { arrowGuide?.UpdateArrow(userPos, currentPathCorners); }
     }
     public void StartNavigationToPoint(PathPointData destinationData)
     {
@@ -587,12 +584,12 @@ public class NavigationManager : MonoBehaviour
         forcePathRecalculation = false;
         if (currentPathCorners != null) currentPathCorners.Clear();
 
-        // <<< MODIFICATION: Wrapped in platform-dependent compilation block >>>
-#if UNITY_EDITOR
-            instantiatedPathVisualizer?.ClearPath();
-#endif
+        // <<< MODIFICATION: Re-enable line clearing >>>
+        instantiatedPathVisualizer?.ClearPath();
 
-        arrowGuide?.ClearArrow();
+        // <<< MODIFICATION: Arrow logic is ignored >>>
+        // arrowGuide?.ClearArrow();
+
         if (isInitialized && isStudentModeActive) UpdateStatus("Navigation Stopped.");
 
         if (distanceText != null)

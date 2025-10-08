@@ -19,14 +19,20 @@ public class DynamicArrowGuide : MonoBehaviour
     private GameObject instantiatedArrow;
     private List<Vector3> currentPath;
     private int currentPathIndex = 0;
-    private Vector3 smoothedArrowPosition; // No longer used for positioning, but kept for reference
-    private Quaternion smoothedArrowRotation; // No longer used for smoothing, but kept for reference
+    private Vector3 smoothedArrowPosition; // Original variable, kept for reference
+    private Quaternion smoothedArrowRotation; // Original variable, kept for reference
     private bool isInitialized = false;
     private bool isArrowVisible = false;
 
+    // <<< MODIFICATION: Initialize now creates a visible arrow on demand >>>
     public void Initialize()
     {
-        if (isInitialized) return;
+        // Add a check to prevent re-initializing if it already exists
+        if (isInitialized && instantiatedArrow != null)
+        {
+            return;
+        }
+
         if (arrowPrefab == null || arCamera == null)
         {
             Debug.LogError("ArrowGuide cannot initialize: Prefab or Camera is missing!");
@@ -34,32 +40,36 @@ public class DynamicArrowGuide : MonoBehaviour
         }
 
         navigationManager = FindObjectOfType<NavigationManager>();
-        // <<< MODIFICATION START: Make arrow a child of the camera for stationary behavior >>>
-        // Original line: instantiatedArrow = Instantiate(arrowPrefab, transform);
+
         instantiatedArrow = Instantiate(arrowPrefab, arCamera.transform);
-
-        // Set its fixed local position relative to the camera
         instantiatedArrow.transform.localPosition = new Vector3(0, arrowYOffset, forwardOffset);
-        // <<< MODIFICATION END >>>
 
-        HideArrow();
+        // HideArrow(); // This is no longer called here. The arrow is visible on creation.
+
         isInitialized = true;
+        isArrowVisible = true; // Set to true as it's now visible by default when created.
     }
 
     public void SetPath(List<Vector3> newPath)
     {
-        if (!isInitialized) Initialize();
+        // if (!isInitialized) Initialize(); // Initialize is now called by NavigationManager
         currentPath = newPath;
         currentPathIndex = 0;
-        if (currentPath != null && currentPath.Count > 1) ShowArrow();
-        else HideArrow();
+        if (currentPath != null && currentPath.Count > 1)
+        {
+            ShowArrow(); // This will ensure it's active if it was previously hidden
+        }
+        else
+        {
+            HideArrow();
+        }
     }
 
     public void UpdateArrow(Vector3 currentUserPosition, List<Vector3> path)
     {
         if (!isArrowVisible || path == null || path.Count < 1)
         {
-            HideArrow();
+            // HideArrow(); // Let ClearArrow handle destruction
             return;
         }
         FindClosestPathSegment(currentUserPosition);
@@ -88,43 +98,33 @@ public class DynamicArrowGuide : MonoBehaviour
         currentPathIndex = bestIndex;
     }
 
-    // <<< MODIFICATION START: Simplified transform update for stationary arrow >>>
     private void UpdateArrowTransform(Vector3 fromPos, Vector3 toPos)
     {
-        // --- 1. Calculate the raw look direction in World Space ---
-        Vector3 lookDirectionWorld = (toPos - fromPos);
-        lookDirectionWorld.y = 0; // Flatten the vector to act like a compass
+        // This is the final, correct, simpler rotation logic
+        Vector3 arrowWorldPosition = instantiatedArrow.transform.position;
+        Vector3 lookDirection = (toPos - arrowWorldPosition);
+        lookDirection.y = 0;
 
-        // --- 2. Get the User's Spawn Rotation Offset ---
-        Quaternion spawnRotationOffset = Quaternion.identity;
-        if (navigationManager != null)
+        if (lookDirection.sqrMagnitude > 0.001f)
         {
-            spawnRotationOffset = navigationManager.GetUserSpawnRotation();
+            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+            instantiatedArrow.transform.rotation = Quaternion.Slerp(instantiatedArrow.transform.rotation, targetRotation, smoothingFactor);
         }
-
-        // --- 3. THIS IS THE CRITICAL FIX: Convert the World Direction to User's Local Direction ---
-        // We rotate the world direction vector by the *inverse* of the user's spawn rotation.
-        // This effectively "un-rotates" the world so that the user's original "forward" becomes the new "forward".
-        Vector3 lookDirectionLocal = Quaternion.Inverse(spawnRotationOffset) * lookDirectionWorld;
-
-        // --- 4. Create the final rotation from the corrected local direction ---
-        Quaternion targetRotation;
-        if (lookDirectionLocal.sqrMagnitude > 0.001f)
-        {
-            targetRotation = Quaternion.LookRotation(lookDirectionLocal);
-        }
-        else
-        {
-            targetRotation = instantiatedArrow.transform.localRotation; // Keep current rotation
-        }
-
-        // --- 5. Smoothly Apply the Rotation ---
-        // We use localRotation because the arrow is a child of the camera.
-        instantiatedArrow.transform.localRotation = Quaternion.Slerp(instantiatedArrow.transform.localRotation, targetRotation, smoothingFactor);
     }
-    // <<< MODIFICATION END >>>
 
-    public void ClearArrow() { HideArrow(); currentPath = null; }
+    // <<< MODIFICATION: ClearArrow now destroys the arrow instance >>>
+    public void ClearArrow()
+    {
+        if (instantiatedArrow != null)
+        {
+            Destroy(instantiatedArrow);
+            instantiatedArrow = null;
+        }
+        isInitialized = false;
+        isArrowVisible = false;
+        currentPath = null;
+    }
+
     private void ShowArrow() { if (instantiatedArrow != null && !isArrowVisible) { instantiatedArrow.SetActive(true); isArrowVisible = true; } }
-    private void HideArrow() { if (instantiatedArrow != null && isArrowVisible) { instantiatedArrow.SetActive(false); isArrowVisible = false; } isArrowVisible = false; }
+    private void HideArrow() { if (instantiatedArrow != null && isArrowVisible) { instantiatedArrow.SetActive(false); isArrowVisible = false; } }
 }
