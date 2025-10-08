@@ -384,6 +384,13 @@ public class FacultyPortalManager : MonoBehaviour
         if (!EnsureLoggedIn(locationUpdateStatusText)) return;
         Debug.Log($"Editing account for: {currentLoggedInFacultyData.FacultyID}");
         ShowCreateAccountPanel(true);
+
+        if (createAccountButton != null)
+        {
+            createAccountButton.gameObject.SetActive(true);
+            createAccountButton.interactable = true;
+        }
+
     }
 
     public async void OnDeleteAccountPressed()
