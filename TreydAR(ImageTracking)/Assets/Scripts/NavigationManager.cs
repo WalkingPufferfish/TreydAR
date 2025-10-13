@@ -447,9 +447,12 @@ public class NavigationManager : MonoBehaviour
             {
                 confirmPlacementButton.gameObject.SetActive(false);
             }
-            if (!isInitialized)
+            if (!isInitialized && !navigationActive)
             {
-                UpdateStatus("Scan Target Image...");
+                if (string.IsNullOrEmpty(statusText.text) || statusText.text == "Scan Target Image...")
+                {
+                    UpdateStatus("Scan Target Image...");
+                }
             }
         }
     }
