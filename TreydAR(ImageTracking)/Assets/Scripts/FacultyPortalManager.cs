@@ -214,9 +214,9 @@ public class FacultyPortalManager : MonoBehaviour
                 {
                     await LoginSuccess(faculty);
                 }
-                else { LoginFail(facultyId, "Invalid Faculty ID or Password."); }
+                else { LoginFail(facultyId, "Invalid Employee ID or Password."); }
             }
-            else { LoginFail(facultyId, "Faculty ID not found."); }
+            else { LoginFail(facultyId, "Employee ID not found."); }
         }
         catch (Exception e) { Debug.LogError($"Login Error: {e.Message}"); SetStatus(loginStatusText, "Error during login."); LoginFail(facultyId, "Login error."); }
         finally { SetButtonInteractable(loginButton, true); }

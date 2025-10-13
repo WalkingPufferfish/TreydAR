@@ -186,10 +186,12 @@ public class FacultyFinder : MonoBehaviour
         string searchTerm = searchInput?.text.Trim().ToLowerInvariant() ?? "";
         List<FacultyMemberData> filteredFaculty = fullFacultyCache.Values
             .Where(f => f != null && !string.IsNullOrEmpty(f.FacultyID) &&
-                        (string.IsNullOrEmpty(searchTerm) ||
-                         (f.FullName?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
-                         (f.Department?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
-                         (f.Position?.ToLowerInvariant().Contains(searchTerm) ?? false)))
+                (string.IsNullOrEmpty(searchTerm) ||
+                 (f.FullName?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
+                 (f.Department?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
+                 (f.Position?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
+                 (f.CurrentLocationName?.ToLowerInvariant().Contains(searchTerm) ?? false) ||
+                 (f.AvailabilityStatus?.ToLowerInvariant().Contains(searchTerm) ?? false)))
             .OrderBy(f => f.FullName)
             .ToList();
 

@@ -4643,6 +4643,11 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
+--- !u!4 &427665964 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7044843206868689325, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &433181572
 GameObject:
   m_ObjectHideFlags: 0
@@ -5727,6 +5732,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 583189473}
   m_CullTransparentMesh: 1
+--- !u!4 &589335335 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6549745408766376519, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &593237855
 GameObject:
   m_ObjectHideFlags: 0
@@ -6954,7 +6964,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -1.7276611, y: -0.0014648438}
+  m_AnchoredPosition: {x: -1.7275391, y: -0.0014648438}
   m_SizeDelta: {x: 1267.7, y: 2330.4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &738712052
@@ -14485,6 +14495,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1353729535}
   m_CullTransparentMesh: 1
+--- !u!4 &1359459730 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1584372106633243764, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1376442750
 GameObject:
   m_ObjectHideFlags: 0
@@ -17184,11 +17199,11 @@ MonoBehaviour:
   recalibrationSmoothing: 0.1
   imageTargetDatabase:
   - imageName: AnchorEntrance
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 427665964}
   - imageName: AnchorMedina
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 1359459730}
   - imageName: AnchorLibrary
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 589335335}
   environmentSceneObject: {fileID: 2540486104172912511}
   environmentVerticalOffset: 0
   ScanGuide_Image: {fileID: 2095950858}
