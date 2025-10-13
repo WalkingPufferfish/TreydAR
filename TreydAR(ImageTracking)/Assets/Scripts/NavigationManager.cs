@@ -388,6 +388,9 @@ public class NavigationManager : MonoBehaviour
         SetNavigationUIVisibility(true);
         UpdateStatus("Loading Destinations...");
         availableDestinations = await firebaseManager.GetAllEndPointsAsync();
+
+        Debug.Log($"Loaded {availableDestinations.Count} destinations from Firebase.");
+
         await LoadDestinations();
         if (availableDestinations.Count > 0) UpdateStatus("Scan a target image on campus.");
     }

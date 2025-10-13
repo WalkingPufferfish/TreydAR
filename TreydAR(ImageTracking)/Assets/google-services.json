@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "252444120224",
-    "project_id": "facultydatabase-3f39e",
-    "storage_bucket": "facultydatabase-3f39e.firebasestorage.app"
+    "project_number": "1429666847",
+    "firebase_url": "https://endpoints-7f2ab-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "endpoints-7f2ab",
+    "storage_bucket": "endpoints-7f2ab.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:252444120224:android:5c1715ea431f1e435465c5",
+        "mobilesdk_app_id": "1:1429666847:android:31520e618334d1120c292a",
         "android_client_info": {
           "package_name": "com.TeamTomodachi.ARGridMapThesis"
         }
@@ -15,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB18RpEML2Tzjv7tCpxpHedox0roo2MNJY"
+          "current_key": "AIzaSyDExcsVB06__Rg_HJUSofSE6tvJPzf_ur8"
         }
       ],
       "services": {

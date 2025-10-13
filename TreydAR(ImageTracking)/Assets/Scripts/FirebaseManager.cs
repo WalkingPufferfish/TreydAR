@@ -111,6 +111,7 @@ public class FirebaseManager : MonoBehaviour
 
                 facultyDbReference = FirebaseDatabase.GetInstance(app, facultyDatabaseUrl).RootReference;
                 endPointsDbReference = FirebaseDatabase.GetInstance(app, endPointsDatabaseUrl).RootReference;
+
                 firebaseInitialized = true;
                 Debug.Log("FirebaseManager: All database connections initialized successfully.");
 
