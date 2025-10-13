@@ -18,7 +18,7 @@ public class NavigationManager : MonoBehaviour
     #region Inspector Fields
     [Header("Core Components")]
     public Camera arCamera;
-    public DynamicArrowGuide arrowGuide;
+    public DynamicArrowGuide arrowGuide; // Kept in Inspector, but logic is disabled
     public FirebaseManager firebaseManager;
 
     [Header("AR Foundation")]
@@ -169,6 +169,7 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+    // <<< MODIFICATION: This button is now the central point for manual recalibration >>>
     public void OnConfirmPlacementButtonPressed()
     {
         if (detectedImageForPlacement == null || detectedImageForPlacement.trackingState != TrackingState.Tracking)
@@ -185,6 +186,7 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        // --- CORE DECISION: Initialize or Recalibrate? ---
         if (!isInitialized)
         {
             InitializeEnvironmentLogic(new Pose(detectedImageForPlacement.transform.position, detectedImageForPlacement.transform.rotation), targetData);
@@ -223,23 +225,6 @@ public class NavigationManager : MonoBehaviour
         InitializeEnvironmentLogic(fakeRealWorldPose, targetData);
     }
 
-    // +++ ADDITION: Diagnostic helper method +++
-    /// <summary>
-    /// Creates a colored sphere in the scene for debugging purposes.
-    /// This will only run in the Unity Editor and will be excluded from builds.
-    /// </summary>
-    private void CreateDebugSphere(Vector3 position, Color color, string name, float scale = 0.1f)
-    {
-#if UNITY_EDITOR
-        GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        sphere.name = name;
-        sphere.transform.position = position;
-        sphere.transform.localScale = Vector3.one * scale;
-        sphere.GetComponent<Renderer>().material.color = color;
-        Destroy(sphere.GetComponent<Collider>());
-#endif
-    }
-
     private void InitializeEnvironmentLogic(Pose realWorldImagePose, ImageTargetData targetData)
     {
         if (environmentSceneObject == null) { UpdateStatus("Error: Environment Prefab Missing!"); return; }
@@ -258,13 +243,6 @@ public class NavigationManager : MonoBehaviour
         Pose virtualAnchorOffset = new Pose(targetData.anchorPointInMap.localPosition, targetData.anchorPointInMap.localRotation);
 
         Pose mapOriginPose = realWorldAnchorPose.GetTransformedBy(virtualAnchorOffset.Inverse());
-
-        // +++ ADDITION: Two lines to spawn the debug spheres +++
-        // A RED sphere shows where the system thinks the physical image anchor is.
-        CreateDebugSphere(realWorldAnchorPose.position, Color.red, "DEBUG_REAL_WORLD_ANCHOR");
-        // A GREEN sphere shows where the system is placing the map's (0,0,0) pivot point.
-        CreateDebugSphere(mapOriginPose.position, Color.green, "DEBUG_MAP_ORIGIN");
-
 
         GameObject anchorGO = new GameObject("EnvironmentAnchor");
         anchorGO.transform.SetPositionAndRotation(mapOriginPose.position, mapOriginPose.rotation);
@@ -315,13 +293,19 @@ public class NavigationManager : MonoBehaviour
             Debug.LogError("FATAL: NavMeshSurface component not found on the environment object. Navigation will fail.");
         }
 
-#if UNITY_EDITOR
-            instantiatedPathVisualizer = instantiatedEnvironment.GetComponentInChildren<PathVisualizer>();
-#endif
+        // <<< MODIFICATION: Find the PathVisualizer in all builds >>>
+        instantiatedPathVisualizer = instantiatedEnvironment.GetComponentInChildren<PathVisualizer>();
 
-        arrowGuide = instantiatedEnvironment.GetComponentInChildren<DynamicArrowGuide>();
+        // <<< MODIFICATION: Arrow Guide logic is ignored >>>
+        // if (arrowGuide == null) arrowGuide = instantiatedEnvironment.GetComponentInChildren<DynamicArrowGuide>();
 
-        if (instantiatedPathVisualizer == null && Application.isEditor) { Debug.LogWarning("PathVisualizer not found. Debug line will not be drawn."); }
+        if (instantiatedPathVisualizer == null) { Debug.LogWarning("PathVisualizer not found. Line will not be drawn."); }
+
+        // if (arrowGuide != null)
+        // {
+        //     arrowGuide.arCamera = this.arCamera;
+        //     arrowGuide.Initialize();
+        // }
 
         isInitialized = true;
         UpdateStatus("Environment Ready. Select Destination.");
@@ -416,6 +400,7 @@ public class NavigationManager : MonoBehaviour
         destinationDropdown.RefreshShownValue();
     }
 
+    // <<< MODIFICATION #3: This method now only shows the button, no automatic recalibration >>>
     void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
     {
         ARTrackedImage imageToUse = null;
@@ -544,16 +529,16 @@ public class NavigationManager : MonoBehaviour
                 currentPathCorners = navMeshPath.corners.ToList();
                 lastPathCalculationPosition = userPos;
 
-#if UNITY_EDITOR
-                    instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
-#endif
+                // <<< MODIFICATION: Re-enable line drawing >>>
+                instantiatedPathVisualizer?.DrawPath(navMeshPath.corners);
 
-                if (arrowGuide != null)
-                {
-                    arrowGuide.arCamera = this.arCamera;
-                    arrowGuide.Initialize();
-                    arrowGuide.SetPath(currentPathCorners);
-                }
+                // <<< MODIFICATION: Arrow logic is ignored >>>
+                // if (arrowGuide != null)
+                // {
+                //     arrowGuide.arCamera = this.arCamera;
+                //     arrowGuide.Initialize(); 
+                //     arrowGuide.SetPath(currentPathCorners);
+                // }
 
                 UpdateStatus($"Navigating to {GetSelectedDestinationName()}");
             }
@@ -561,17 +546,18 @@ public class NavigationManager : MonoBehaviour
             {
                 currentPathCorners.Clear();
 
-#if UNITY_EDITOR
-                    instantiatedPathVisualizer?.ClearPath();
-#endif
+                // <<< MODIFICATION: Re-enable line clearing >>>
+                instantiatedPathVisualizer?.ClearPath();
 
-                arrowGuide?.ClearArrow();
+                // <<< MODIFICATION: Arrow logic is ignored >>>
+                // arrowGuide?.ClearArrow();
                 UpdateStatus($"Cannot find path to {GetSelectedDestinationName()}");
             }
             forcePathRecalculation = false;
         }
 
-        if (currentPathCorners != null && currentPathCorners.Count > 0) { arrowGuide?.UpdateArrow(userPos, currentPathCorners); }
+        // <<< MODIFICATION: Arrow logic is ignored >>>
+        // if (currentPathCorners != null && currentPathCorners.Count > 0) { arrowGuide?.UpdateArrow(userPos, currentPathCorners); }
     }
     public void StartNavigationToPoint(PathPointData destinationData)
     {
@@ -598,11 +584,11 @@ public class NavigationManager : MonoBehaviour
         forcePathRecalculation = false;
         if (currentPathCorners != null) currentPathCorners.Clear();
 
-#if UNITY_EDITOR
-            instantiatedPathVisualizer?.ClearPath();
-#endif
+        // <<< MODIFICATION: Re-enable line clearing >>>
+        instantiatedPathVisualizer?.ClearPath();
 
-        arrowGuide?.ClearArrow();
+        // <<< MODIFICATION: Arrow logic is ignored >>>
+        // arrowGuide?.ClearArrow();
 
         if (isInitialized && isStudentModeActive) UpdateStatus("Navigation Stopped.");
 
