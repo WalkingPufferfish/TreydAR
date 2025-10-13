@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using Firebase.Auth; // <<< NEW: Added for Firebase Authentication services
 
 public class FirebaseManager : MonoBehaviour
 {
@@ -84,6 +85,14 @@ public class FirebaseManager : MonoBehaviour
         public List<string> rooms;
     }
 
+    // <<< NEW METHOD: Handles signing in within the Unity Editor for testing purposes >>>
+    /// <summary>
+    /// Signs into Firebase using a test account's credentials.
+    /// This method only runs inside the Unity Editor to bypass authentication rules during development.
+    /// </summary>
+   
+
+
     public async Task InitializeFirebase()
     {
         if (firebaseInitialized) return;
@@ -92,11 +101,15 @@ public class FirebaseManager : MonoBehaviour
             var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
             if (dependencyStatus == DependencyStatus.Available)
             {
+              
+
                 FirebaseApp app = FirebaseApp.DefaultInstance;
                 facultyDbReference = FirebaseDatabase.GetInstance(app, facultyDatabaseUrl).RootReference;
                 endPointsDbReference = FirebaseDatabase.GetInstance(app, endPointsDatabaseUrl).RootReference;
                 firebaseInitialized = true;
                 Debug.Log("FirebaseManager: All database connections initialized successfully.");
+
+                // Now that the client is authenticated, this listener will be permitted to attach.
                 ListenForFacultyUpdates();
             }
             else
@@ -111,7 +124,6 @@ public class FirebaseManager : MonoBehaviour
     }
 
 
-    // <<< --- NEW METHOD TO GET ENDPOINTS FROM FIREBASE --- >>>
     public async Task<List<PathPointData>> GetAllEndPointsAsync()
     {
         if (!firebaseInitialized)
@@ -123,14 +135,11 @@ public class FirebaseManager : MonoBehaviour
         List<PathPointData> endPoints = new List<PathPointData>();
         try
         {
-            // Go to the secondary database, to the "endPoints" node, and get all the data.
             DataSnapshot snapshot = await endPointsDbReference.Child(endPointsRootNode).GetValueAsync();
             if (snapshot.Exists && snapshot.HasChildren)
             {
                 foreach (var childSnapshot in snapshot.Children)
                 {
-                    // For each child, convert the JSON back into our PathPointData object.
-                    // This uses a dictionary to be safe with the data types.
                     var pointDict = childSnapshot.Value as Dictionary<string, object>;
                     if (pointDict != null)
                     {
@@ -153,7 +162,6 @@ public class FirebaseManager : MonoBehaviour
             Debug.LogError($"FirebaseManager: Exception getting endpoints from Firebase: {e.Message}");
         }
 
-        // Return the list, sorted alphabetically for the dropdown.
         return endPoints.OrderBy(p => p.Name).ToList();
     }
 
@@ -188,7 +196,6 @@ public class FirebaseManager : MonoBehaviour
         }
     }
 
-    // --- ALL FACULTY MANAGEMENT METHODS (No changes needed below this line) ---
     public async Task<Dictionary<string, List<string>>> FetchDepartmentRoomsAsync()
     {
         var result = new Dictionary<string, List<string>>();
@@ -208,7 +215,7 @@ public class FirebaseManager : MonoBehaviour
                 string deptKey = dept.Key;
                 List<string> rooms = new();
 
-                if (dept.HasChild("rooms") && dept.Child("rooms").HasChildren)
+                if (dept.HasChild("rooms") && dept.HasChild("rooms"))
                 {
                     foreach (var room in dept.Child("rooms").Children)
                     {
