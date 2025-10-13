@@ -11,10 +11,10 @@ public class DynamicArrowGuide : MonoBehaviour
     private NavigationManager navigationManager;
 
     [Header("Visual Settings")]
-    public float arrowYOffset = 0.1f;
-    public float forwardOffset = 0.5f;
+    public float arrowYOffset = 0f; // Set to 0 for vertical centering
+    public float forwardOffset = 1.0f; // A comfortable distance in front of the camera
     public float smoothingFactor = 0.15f;
-    public float minDistanceToNextNode = 0.4f;
+    public float minDistanceToNextNode = 1.0f;
 
     private GameObject instantiatedArrow;
     private List<Vector3> currentPath;
@@ -24,10 +24,8 @@ public class DynamicArrowGuide : MonoBehaviour
     private bool isInitialized = false;
     private bool isArrowVisible = false;
 
-    // <<< MODIFICATION: Initialize now creates a visible arrow on demand >>>
     public void Initialize()
     {
-        // Add a check to prevent re-initializing if it already exists
         if (isInitialized && instantiatedArrow != null)
         {
             return;
@@ -44,20 +42,17 @@ public class DynamicArrowGuide : MonoBehaviour
         instantiatedArrow = Instantiate(arrowPrefab, arCamera.transform);
         instantiatedArrow.transform.localPosition = new Vector3(0, arrowYOffset, forwardOffset);
 
-        // HideArrow(); // This is no longer called here. The arrow is visible on creation.
-
         isInitialized = true;
-        isArrowVisible = true; // Set to true as it's now visible by default when created.
+        isArrowVisible = true;
     }
 
     public void SetPath(List<Vector3> newPath)
     {
-        // if (!isInitialized) Initialize(); // Initialize is now called by NavigationManager
         currentPath = newPath;
         currentPathIndex = 0;
         if (currentPath != null && currentPath.Count > 1)
         {
-            ShowArrow(); // This will ensure it's active if it was previously hidden
+            ShowArrow();
         }
         else
         {
@@ -69,11 +64,15 @@ public class DynamicArrowGuide : MonoBehaviour
     {
         if (!isArrowVisible || path == null || path.Count < 1)
         {
-            // HideArrow(); // Let ClearArrow handle destruction
             return;
         }
+
+        // This finds the closest segment and advances the index if needed
         FindClosestPathSegment(currentUserPosition);
+
+        // This determines the next corner to point towards
         Vector3 targetPoint = (currentPathIndex < 0 || currentPathIndex >= path.Count - 1) ? path.Last() : path[currentPathIndex + 1];
+
         UpdateArrowTransform(currentUserPosition, targetPoint);
     }
 
@@ -91,6 +90,8 @@ public class DynamicArrowGuide : MonoBehaviour
             float distSq = (userPos - (p1 + t * segmentDir)).sqrMagnitude;
             if (distSq < closestDistSq) { closestDistSq = distSq; bestIndex = i; }
         }
+
+        // Logic to advance to the next segment when the user gets close to the next corner
         if (bestIndex != -1 && bestIndex < currentPath.Count - 1 && Vector3.Distance(userPos, currentPath[bestIndex + 1]) < minDistanceToNextNode)
         {
             if (bestIndex < currentPath.Count - 2) bestIndex++;
@@ -101,6 +102,8 @@ public class DynamicArrowGuide : MonoBehaviour
     private void UpdateArrowTransform(Vector3 fromPos, Vector3 toPos)
     {
         // This is the final, correct, simpler rotation logic
+        if (instantiatedArrow == null) return;
+
         Vector3 arrowWorldPosition = instantiatedArrow.transform.position;
         Vector3 lookDirection = (toPos - arrowWorldPosition);
         lookDirection.y = 0;
@@ -112,7 +115,6 @@ public class DynamicArrowGuide : MonoBehaviour
         }
     }
 
-    // <<< MODIFICATION: ClearArrow now destroys the arrow instance >>>
     public void ClearArrow()
     {
         if (instantiatedArrow != null)
