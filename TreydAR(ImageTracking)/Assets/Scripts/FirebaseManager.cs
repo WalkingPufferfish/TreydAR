@@ -25,6 +25,8 @@ public class FirebaseManager : MonoBehaviour
     private DatabaseReference endPointsDbReference;
     private bool firebaseInitialized = false;
     public bool IsInitialized => firebaseInitialized;
+    private FirebaseAuth auth; // <<< ADD THIS PRIVATE VARIABLE
+    public FirebaseAuth AuthInstance => auth; // <<< ADD THIS PUBLIC GETTER
 
     public event Action<Dictionary<string, FacultyMemberData>> OnFacultyDataUpdated;
     private Dictionary<string, FacultyMemberData> localFacultyCache = new Dictionary<string, FacultyMemberData>();
@@ -104,6 +106,9 @@ public class FirebaseManager : MonoBehaviour
               
 
                 FirebaseApp app = FirebaseApp.DefaultInstance;
+
+                auth = FirebaseAuth.GetAuth(app); // <<< ADD THIS LINE TO INITIALIZE AUTH
+
                 facultyDbReference = FirebaseDatabase.GetInstance(app, facultyDatabaseUrl).RootReference;
                 endPointsDbReference = FirebaseDatabase.GetInstance(app, endPointsDatabaseUrl).RootReference;
                 firebaseInitialized = true;

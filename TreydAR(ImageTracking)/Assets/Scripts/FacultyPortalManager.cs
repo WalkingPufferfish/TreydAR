@@ -7,6 +7,7 @@ using System.Linq;
 using System;
 using System.Threading.Tasks;
 using Firebase.Database;
+using Firebase.Auth;
 
 // Assuming FacultyMemberData class is defined elsewhere
 // Assuming FirebaseManager class is defined elsewhere
@@ -199,27 +200,51 @@ public class FacultyPortalManager : MonoBehaviour
     public async void OnLoginButtonPressed()
     {
         ClearStatusMessages();
-        string facultyId = loginFacultyIdInput.text?.Trim();
-        string password = loginPasswordInput.text; // Plain text password
-        if (string.IsNullOrEmpty(facultyId) || string.IsNullOrEmpty(password)) { SetStatus(loginStatusText, "Error: Faculty ID and Password are required."); return; }
+        // IMPORTANT: The "Faculty ID" input field must now be used for the user's EMAIL.
+        string email = loginFacultyIdInput.text?.Trim();
+        string password = loginPasswordInput.text;
 
-        SetButtonInteractable(loginButton, false); SetStatus(loginStatusText, "Logging in...");
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        {
+            SetStatus(loginStatusText, "Error: Email and Password are required.");
+            return;
+        }
+
+        SetButtonInteractable(loginButton, false);
+        SetStatus(loginStatusText, "Logging in...");
+
         try
         {
-            FacultyMemberData faculty = await firebaseManager.GetFacultyMemberAsync(facultyId);
+            // STEP 1: Authenticate with Firebase Auth using email and password.
+            var authResult = await firebaseManager.AuthInstance.SignInWithEmailAndPasswordAsync(email, password);
+
+            // If we reach this line, the login was successful. Now get the user's UID.
+            string userUID = authResult.User.UserId;
+
+            // STEP 2: Use the UID to fetch the user's profile data from the database.
+            FacultyMemberData faculty = await firebaseManager.GetFacultyMemberAsync(userUID);
+
             if (faculty != null)
             {
-                // Verify password against the stored hash using FirebaseManager
-                if (firebaseManager.VerifyPassword(faculty, password))
-                {
-                    await LoginSuccess(faculty);
-                }
-                else { LoginFail(facultyId, "Invalid Employee ID or Password."); }
+                // STEP 3: Proceed to the next screen.
+                await LoginSuccess(faculty);
             }
-            else { LoginFail(facultyId, "Employee ID not found."); }
+            else
+            {
+                // This is a safety check for a rare error case.
+                LoginFail(email, "Authentication successful, but profile data not found.");
+            }
         }
-        catch (Exception e) { Debug.LogError($"Login Error: {e.Message}"); SetStatus(loginStatusText, "Error during login."); LoginFail(facultyId, "Login error."); }
-        finally { SetButtonInteractable(loginButton, true); }
+        catch (Exception e)
+        {
+            // This block will catch errors like wrong password, user not found, etc.
+            Debug.LogError($"Login Error: {e.Message}");
+            LoginFail(email, "Invalid Email or Password.");
+        }
+        finally
+        {
+            SetButtonInteractable(loginButton, true);
+        }
     }
 
     public void OnShowCreateAccountPanelButtonPressed() { ShowCreateAccountPanel(false); }
