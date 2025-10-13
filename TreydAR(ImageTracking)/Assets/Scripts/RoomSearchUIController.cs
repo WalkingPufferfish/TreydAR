@@ -25,6 +25,7 @@ public class RoomSearchUIController : MonoBehaviour
     {
         Debug.Log("RoomSearchUIController: Start() triggered");
 
+        RoomDropdown.ClearOptions();
         RoomDropdown.interactable = false;
 
         DepartmentDropdown.onValueChanged.RemoveAllListeners();
@@ -51,9 +52,10 @@ public class RoomSearchUIController : MonoBehaviour
         DepartmentDropdown.value = 0;
         DepartmentDropdown.RefreshShownValue();
 
-        selectedDepartment = DepartmentDropdown.options[1].text; // First actual department
-        UpdateRoomDropdown(selectedDepartment);
-        NavigateToDepartment(selectedDepartment);
+        selectedDepartment = "";
+        RoomDropdown.ClearOptions();
+        RoomDropdown.interactable = false;
+        TextDisplay.text = "Department...";
     }
 
     void OnDepartmentSelected(int index)
