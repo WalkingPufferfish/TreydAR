@@ -1300,6 +1300,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!4 &141241238 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6549745408766376519, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &145404317
 GameObject:
   m_ObjectHideFlags: 0
@@ -12862,6 +12867,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1203202899}
   m_CullTransparentMesh: 1
+--- !u!4 &1204964665 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1584372106633243764, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1231371182
 GameObject:
   m_ObjectHideFlags: 0
@@ -14106,6 +14116,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1327567504}
   m_CullTransparentMesh: 1
+--- !u!4 &1338000368 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7044843206868689325, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
+  m_PrefabInstance: {fileID: 5376065355676318981}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1339001050
 GameObject:
   m_ObjectHideFlags: 0
@@ -17184,11 +17199,11 @@ MonoBehaviour:
   recalibrationSmoothing: 0.1
   imageTargetDatabase:
   - imageName: AnchorEntrance
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 1338000368}
   - imageName: AnchorMedina
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 1204964665}
   - imageName: AnchorLibrary
-    anchorPointInMap: {fileID: 0}
+    anchorPointInMap: {fileID: 141241238}
   environmentSceneObject: {fileID: 2540486104172912511}
   environmentVerticalOffset: 0
   ScanGuide_Image: {fileID: 2095950858}
