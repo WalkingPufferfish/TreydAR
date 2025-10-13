@@ -6761,7 +6761,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
-      value: Medina-Room 2
+      value: Medina - Room 202
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -15435,7 +15435,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
-      value: Medina-Room 1
+      value: Medina - Room 201
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

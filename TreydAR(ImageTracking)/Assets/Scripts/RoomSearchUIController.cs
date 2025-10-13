@@ -73,7 +73,12 @@ public class RoomSearchUIController : MonoBehaviour
         Debug.Log($"Department selected: {selectedDepartment}");
 
         UpdateRoomDropdown(selectedDepartment);
-        NavigateToDepartment(selectedDepartment);
+
+        // Navigate to department only if no room is selected
+        if (RoomDropdown == null || RoomDropdown.value == 0)
+        {
+            NavigateToDepartment(selectedDepartment);
+        }
     }
 
     void UpdateRoomDropdown(string department)

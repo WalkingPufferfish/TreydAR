@@ -629,5 +629,24 @@ public class NavigationManager : MonoBehaviour
     bool IsTargetImage(ARTrackedImage image) => string.IsNullOrEmpty(targetImageName) || image.referenceImage.name == targetImageName;
 
     string GetSelectedDestinationName() => selectedDestinationIndex > 0 && selectedDestinationIndex - 1 < availableDestinations.Count ? availableDestinations[selectedDestinationIndex - 1].Name : "Target";
+
+    public void NavigateTo(string destinationName)
+    {
+        if (string.IsNullOrEmpty(destinationName) || firebaseManager == null || !isInitialized || environmentOriginTransform == null)
+        {
+            UpdateStatus($"Navigation failed: Invalid destination '{destinationName}'.");
+            return;
+        }
+
+        PathPointData destinationPoint = firebaseManager.GetCachedEndPointByName(destinationName);
+        if (destinationPoint != null)
+        {
+            StartNavigationToPoint(destinationPoint);
+        }
+        else
+        {
+            UpdateStatus($"Destination '{destinationName}' not found.");
+        }
+    }
     #endregion
 }
