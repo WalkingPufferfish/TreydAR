@@ -7,7 +7,6 @@ using System.Linq;
 using System;
 using System.Threading.Tasks;
 using Firebase.Database;
-using Firebase.Auth;
 
 // Assuming FacultyMemberData class is defined elsewhere
 // Assuming FirebaseManager class is defined elsewhere
@@ -200,51 +199,27 @@ public class FacultyPortalManager : MonoBehaviour
     public async void OnLoginButtonPressed()
     {
         ClearStatusMessages();
-        // IMPORTANT: The "Faculty ID" input field must now be used for the user's EMAIL.
-        string email = loginFacultyIdInput.text?.Trim();
-        string password = loginPasswordInput.text;
+        string facultyId = loginFacultyIdInput.text?.Trim();
+        string password = loginPasswordInput.text; // Plain text password
+        if (string.IsNullOrEmpty(facultyId) || string.IsNullOrEmpty(password)) { SetStatus(loginStatusText, "Error: Faculty ID and Password are required."); return; }
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            SetStatus(loginStatusText, "Error: Email and Password are required.");
-            return;
-        }
-
-        SetButtonInteractable(loginButton, false);
-        SetStatus(loginStatusText, "Logging in...");
-
+        SetButtonInteractable(loginButton, false); SetStatus(loginStatusText, "Logging in...");
         try
         {
-            // STEP 1: Authenticate with Firebase Auth using email and password.
-            var authResult = await firebaseManager.AuthInstance.SignInWithEmailAndPasswordAsync(email, password);
-
-            // If we reach this line, the login was successful. Now get the user's UID.
-            string userUID = authResult.User.UserId;
-
-            // STEP 2: Use the UID to fetch the user's profile data from the database.
-            FacultyMemberData faculty = await firebaseManager.GetFacultyMemberAsync(userUID);
-
+            FacultyMemberData faculty = await firebaseManager.GetFacultyMemberAsync(facultyId);
             if (faculty != null)
             {
-                // STEP 3: Proceed to the next screen.
-                await LoginSuccess(faculty);
+                // Verify password against the stored hash using FirebaseManager
+                if (firebaseManager.VerifyPassword(faculty, password))
+                {
+                    await LoginSuccess(faculty);
+                }
+                else { LoginFail(facultyId, "Invalid Faculty ID or Password."); }
             }
-            else
-            {
-                // This is a safety check for a rare error case.
-                LoginFail(email, "Authentication successful, but profile data not found.");
-            }
+            else { LoginFail(facultyId, "Faculty ID not found."); }
         }
-        catch (Exception e)
-        {
-            // This block will catch errors like wrong password, user not found, etc.
-            Debug.LogError($"Login Error: {e.Message}");
-            LoginFail(email, "Invalid Email or Password.");
-        }
-        finally
-        {
-            SetButtonInteractable(loginButton, true);
-        }
+        catch (Exception e) { Debug.LogError($"Login Error: {e.Message}"); SetStatus(loginStatusText, "Error during login."); LoginFail(facultyId, "Login error."); }
+        finally { SetButtonInteractable(loginButton, true); }
     }
 
     public void OnShowCreateAccountPanelButtonPressed() { ShowCreateAccountPanel(false); }
@@ -409,13 +384,6 @@ public class FacultyPortalManager : MonoBehaviour
         if (!EnsureLoggedIn(locationUpdateStatusText)) return;
         Debug.Log($"Editing account for: {currentLoggedInFacultyData.FacultyID}");
         ShowCreateAccountPanel(true);
-
-        if (createAccountButton != null)
-        {
-            createAccountButton.gameObject.SetActive(true);
-            createAccountButton.interactable = true;
-        }
-
     }
 
     public async void OnDeleteAccountPressed()
@@ -452,21 +420,11 @@ public class FacultyPortalManager : MonoBehaviour
         if (locationDropdown == null || departmentRoomMap == null) return;
 
         locationDropdown.ClearOptions();
-
-        // Filter out keys that look like room names (contain dash or "Room")
-        List<string> filteredDepartments = departmentRoomMap.Keys
-            .Where(dept => !string.IsNullOrEmpty(dept) &&
-                           !dept.Contains("-") &&
-                           !dept.ToLowerInvariant().Contains("room"))
-            .ToList();
-
         List<string> options = new() { "Select Department..." };
-        options.AddRange(filteredDepartments);
+        options.AddRange(departmentRoomMap.Keys);
         locationDropdown.AddOptions(options);
-
         locationDropdown.value = 0;
         locationDropdown.RefreshShownValue();
-
         roomDropdown.ClearOptions();
         roomDropdown.interactable = false;
 
@@ -497,19 +455,19 @@ public class FacultyPortalManager : MonoBehaviour
         List<string> rooms = departmentRoomMap[selectedDept];
         if (rooms == null || rooms.Count == 0)
         {
-            SetStatus(locationUpdateStatusText, $"No offices found for {selectedDept}.");
+            SetStatus(locationUpdateStatusText, $"No rooms found for {selectedDept}.");
             return;
         }
 
         // Populate room dropdown
-        List<string> roomOptions = new() { "Select Office..." };
+        List<string> roomOptions = new() { "Select Room..." };
         roomOptions.AddRange(rooms);
         roomDropdown.AddOptions(roomOptions);
         roomDropdown.value = 0;
         roomDropdown.RefreshShownValue();
         roomDropdown.interactable = true;
 
-        SetStatus(locationUpdateStatusText, $"Offices for {selectedDept} loaded.");
+        SetStatus(locationUpdateStatusText, $"Rooms for {selectedDept} loaded.");
     }
 
     private async Task FetchDepartmentRoomsAndPopulate()
@@ -556,63 +514,25 @@ public class FacultyPortalManager : MonoBehaviour
 
     private void PopulateLocationDropdown()
     {
-        if (locationDropdown == null || databaseManager == null)
-        {
-            Debug.LogError("PopulateLocationDropdown: Refs missing.");
-            return;
-        }
-
-        try
-        {
-            availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"SQLite error: {e.Message}");
-            availableEndPoints = new List<PathPointData>();
-        }
-
-        // Filter out room-like entries BEFORE populating
-        List<PathPointData> filteredEndPoints = availableEndPoints
-            .Where(p => p != null &&
-                        !string.IsNullOrEmpty(p.Name) &&
-                        !p.Name.Contains("-") &&
-                        !p.Name.ToLowerInvariant().Contains("room"))
-            .ToList();
-
+        if (locationDropdown == null || databaseManager == null) { Debug.LogError("PopulateLocationDropdown: Refs missing."); return; }
+        try { availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>(); }
+        catch (Exception e) { Debug.LogError($"SQLite error: {e.Message}"); availableEndPoints = new List<PathPointData>(); }
         locationDropdown.ClearOptions();
-        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
-    {
-        new TMP_Dropdown.OptionData("Select Department...")
-    };
-
+        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData> { new TMP_Dropdown.OptionData("Select Location...") };
         int selectedIndex = 0;
         string currentLocation = currentLoggedInFacultyData?.CurrentLocationName;
-
-        foreach (var point in filteredEndPoints)
+        for (int i = 0; i < availableEndPoints.Count; i++)
         {
-            options.Add(new TMP_Dropdown.OptionData(point.Name));
-            if (!string.IsNullOrEmpty(currentLocation) &&
-                point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase))
+            PathPointData point = availableEndPoints[i];
+            if (point != null && !string.IsNullOrEmpty(point.Name))
             {
-                selectedIndex = options.Count - 1;
+                options.Add(new TMP_Dropdown.OptionData(point.Name));
+                if (!string.IsNullOrEmpty(currentLocation) && point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase)) { selectedIndex = i + 1; }
             }
         }
-
-        if (options.Count == 1)
-        {
-            options.Clear();
-            options.Add(new TMP_Dropdown.OptionData("No Locations Available"));
-            locationDropdown.interactable = false;
-        }
-        else
-        {
-            locationDropdown.interactable = true;
-        }
-
-        locationDropdown.options = options;
-        locationDropdown.value = selectedIndex;
-        locationDropdown.RefreshShownValue();
+        if (options.Count == 1) { options.Clear(); options.Add(new TMP_Dropdown.OptionData("No Locations Available")); locationDropdown.interactable = false; }
+        else { locationDropdown.interactable = true; }
+        locationDropdown.options = options; locationDropdown.value = selectedIndex; locationDropdown.RefreshShownValue();
     }
 
     private void UpdateCurrentLocationDisplay(string locationName)
