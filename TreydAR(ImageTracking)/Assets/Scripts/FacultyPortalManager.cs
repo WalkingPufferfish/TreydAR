@@ -36,6 +36,7 @@ public class FacultyPortalManager : MonoBehaviour
     public Button loginButton;
     public Button showCreateAccountButton;
     public Button changeRoleButtonLogin;
+    public Button resetPasswordButton;
 
     [Header("Create/Edit Account Panel Elements")]
     public TMP_InputField createFacultyIdInput;
@@ -91,6 +92,7 @@ public class FacultyPortalManager : MonoBehaviour
 
         loginButton.onClick.AddListener(OnLoginButtonPressed);
         showCreateAccountButton.onClick.AddListener(OnShowCreateAccountPanelButtonPressed);
+        resetPasswordButton.onClick.AddListener(OnResetPasswordButtonPressed);
         createAccountButton.onClick.AddListener(OnCreateOrUpdateAccountButtonPressed);
         backToLoginButton.onClick.AddListener(OnBackToLoginButtonPressed);
         updateLocationButton.onClick.AddListener(OnUpdateLocationAndAvailabilityPressed);
@@ -680,6 +682,45 @@ public class FacultyPortalManager : MonoBehaviour
         }
         dropdown.value = selectedIndex;
         dropdown.RefreshShownValue();
+    }
+
+    public async void OnResetPasswordButtonPressed()
+    {
+        ClearStatusMessages();
+        string email = loginFacultyIdInput.text?.Trim();
+
+        // 1. Validate that the user has entered an email.
+        if (string.IsNullOrEmpty(email))
+        {
+            SetStatus(loginStatusText, "Please enter your email address to reset the password.");
+            return;
+        }
+
+        SetStatus(loginStatusText, "Sending reset email...");
+        // Disable both buttons to prevent spamming while the request is in progress.
+        SetButtonInteractable(resetPasswordButton, false);
+        SetButtonInteractable(loginButton, false);
+
+        try
+        {
+            // 2. Call the Firebase Authentication SDK to send the reset email.
+            await firebaseManager.AuthInstance.SendPasswordResetEmailAsync(email);
+
+            // 3. If the call succeeds, give the user clear instructions.
+            SetStatus(loginStatusText, $"Password reset email sent to {email}. Please check your inbox.");
+        }
+        catch (Exception e)
+        {
+            // 4. If the call fails (e.g., user not found), show a generic but helpful error.
+            Debug.LogError($"Password Reset Error: {e.Message}");
+            SetStatus(loginStatusText, "Error: Could not send reset email. Please check the address.");
+        }
+        finally
+        {
+            // 5. CRITICAL: No matter what happens, re-enable the buttons so the user can try again.
+            SetButtonInteractable(resetPasswordButton, true);
+            SetButtonInteractable(loginButton, true);
+        }
     }
     #endregion
 }
