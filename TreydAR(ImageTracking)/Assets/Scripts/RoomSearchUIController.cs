@@ -92,18 +92,18 @@ public class RoomSearchUIController : MonoBehaviour
 
         if (rooms.Count > 0)
         {
-            List<string> roomOptions = new List<string> { "Select Room..." };
+            List<string> roomOptions = new List<string> { "Select Office..." };
             roomOptions.AddRange(rooms);
 
             RoomDropdown.AddOptions(roomOptions);
             RoomDropdown.interactable = true;
             RoomDropdown.value = 0;
             RoomDropdown.RefreshShownValue();
-            TextDisplay.text = $"Rooms for {department} loaded.";
+            TextDisplay.text = $"Offices for {department} loaded.";
         }
         else
         {
-            TextDisplay.text = $"No rooms assigned to {department}.";
+            TextDisplay.text = $"No offices assigned to {department}.";
         }
     }
 

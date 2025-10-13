@@ -472,19 +472,19 @@ public class FacultyPortalManager : MonoBehaviour
         List<string> rooms = departmentRoomMap[selectedDept];
         if (rooms == null || rooms.Count == 0)
         {
-            SetStatus(locationUpdateStatusText, $"No rooms found for {selectedDept}.");
+            SetStatus(locationUpdateStatusText, $"No offices found for {selectedDept}.");
             return;
         }
 
         // Populate room dropdown
-        List<string> roomOptions = new() { "Select Room..." };
+        List<string> roomOptions = new() { "Select Office..." };
         roomOptions.AddRange(rooms);
         roomDropdown.AddOptions(roomOptions);
         roomDropdown.value = 0;
         roomDropdown.RefreshShownValue();
         roomDropdown.interactable = true;
 
-        SetStatus(locationUpdateStatusText, $"Rooms for {selectedDept} loaded.");
+        SetStatus(locationUpdateStatusText, $"Offices for {selectedDept} loaded.");
     }
 
     private async Task FetchDepartmentRoomsAndPopulate()
@@ -558,7 +558,7 @@ public class FacultyPortalManager : MonoBehaviour
         locationDropdown.ClearOptions();
         List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
     {
-        new TMP_Dropdown.OptionData("Select Location...")
+        new TMP_Dropdown.OptionData("Select Department...")
     };
 
         int selectedIndex = 0;
