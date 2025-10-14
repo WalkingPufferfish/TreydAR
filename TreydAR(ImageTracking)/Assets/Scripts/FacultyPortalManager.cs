@@ -71,7 +71,7 @@ public class FacultyPortalManager : MonoBehaviour
     private FacultyMemberData currentLoggedInFacultyData;
     private List<PathPointData> availableEndPoints = new List<PathPointData>();
     private readonly List<string> availabilityStatuses = new List<string> { "Select Status...", "In Office", "Meeting/OB", "WFH", "On Leave", "Out" };
-    private readonly List<string> positionOptions = new List<string> { "Select Position...", "Faculty", "Admin" };
+    private readonly List<string> positionOptions = new List<string> { "Select Position...", "Dean", "Director", "Vice-President" };
     private bool isEditingAccount = false;
     #endregion
 
@@ -141,7 +141,7 @@ public class FacultyPortalManager : MonoBehaviour
 
         if (forEditing && currentLoggedInFacultyData != null)
         {
-            createFacultyIdInput.text = currentLoggedInFacultyData.FacultyID;
+            createFacultyIdInput.text = currentLoggedInFacultyData.Email;
             createFacultyIdInput.interactable = false;
             createFullNameInput.text = currentLoggedInFacultyData.FullName;
             createDepartmentInput.text = currentLoggedInFacultyData.Department;
@@ -255,14 +255,14 @@ public class FacultyPortalManager : MonoBehaviour
     public async void OnCreateOrUpdateAccountButtonPressed()
     {
         ClearStatusMessages();
-        string facultyId = createFacultyIdInput.text?.Trim();
+        string Email = createFacultyIdInput.text?.Trim();
         string fullName = createFullNameInput.text?.Trim();
         string department = createDepartmentInput.text?.Trim();
         string password = createPasswordInput.text; // Plain password
         string confirmPassword = createConfirmPasswordInput.text;
         string position = (createPositionDropdown.value > 0 && createPositionDropdown.value < positionOptions.Count) ? positionOptions[createPositionDropdown.value] : null;
 
-        if (string.IsNullOrWhiteSpace(facultyId) || string.IsNullOrWhiteSpace(fullName)) { SetStatus(createStatusText, "Faculty ID and Full Name are required."); return; }
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(fullName)) { SetStatus(createStatusText, "Faculty ID and Full Name are required."); return; }
         if (string.IsNullOrEmpty(position)) { SetStatus(createStatusText, "Please select a position (Faculty/Admin)."); return; }
 
         bool isPasswordBeingSetOrChanged = !string.IsNullOrEmpty(password);
@@ -273,12 +273,39 @@ public class FacultyPortalManager : MonoBehaviour
 
         if (isPasswordBeingSetOrChanged)
         {
-            if (password.Length < 6) { SetStatus(createStatusText, "Password must be at least 6 characters."); return; }
-            if (password != confirmPassword) { SetStatus(createStatusText, "Passwords do not match."); return; }
-        }
-        else if (!isEditingAccount) // New account
-        {
-            SetStatus(createStatusText, "Password is required for new accounts."); return;
+            if (password.Length < 6)
+            {
+                SetStatus(createStatusText, "Password must be at least 6 characters.");
+                return;
+            }
+
+            if (password != confirmPassword)
+            {
+                SetStatus(createStatusText, "Passwords do not match.");
+                return;
+            }
+
+            try
+            {
+                var currentUser = firebaseManager.AuthInstance.CurrentUser;
+                if (currentUser != null)
+                {
+                    await currentUser.UpdatePasswordAsync(password);
+                    Debug.Log("Firebase Auth password updated successfully.");
+                }
+                else
+                {
+                    Debug.LogWarning("No authenticated user found. Cannot update password.");
+                    SetStatus(createStatusText, "Error: No authenticated user.");
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error updating Firebase Auth password: {e.Message}");
+                SetStatus(createStatusText, "Failed to update password.");
+                return;
+            }
         }
 
         SetButtonInteractable(createAccountButton, false);
@@ -292,29 +319,27 @@ public class FacultyPortalManager : MonoBehaviour
 
             if (isEditingAccount && currentLoggedInFacultyData != null)
             {
-                // Create a new object with existing data to avoid modifying cache prematurely
                 facultyDataToSave = new FacultyMemberData
                 {
-                    FacultyID = currentLoggedInFacultyData.FacultyID,
-                    FullName = fullName, // Updated
-                    Department = department, // Updated
-                    Position = position, // Updated
-                    // Preserve existing values that are not being changed on this form
-                    CurrentLocationName = currentLoggedInFacultyData.CurrentLocationName,
-                    AvailabilityStatus = currentLoggedInFacultyData.AvailabilityStatus,
-                    // IMPORTANT: Pass the existing hash. If plainPasswordToSet is not null, FirebaseManager will overwrite this.
-                    PasswordHash = currentLoggedInFacultyData.PasswordHash
+                    FacultyID = firebaseManager.AuthInstance.CurrentUser?.UserId,
+                    Email = Email,
+                    FullName = fullName,
+                    Department = department,
+                    Position = position,
+                    CurrentLocationName = currentLoggedInFacultyData?.CurrentLocationName,
+                    AvailabilityStatus = currentLoggedInFacultyData?.AvailabilityStatus,
+                    PasswordHash = currentLoggedInFacultyData?.PasswordHash
                 };
             }
             else // New account
             {
                 // FirebaseManager requires a password for new accounts, ensured by prior validation.
-                bool exists = await firebaseManager.DoesFacultyExistAsync(facultyId);
-                if (exists) { SetStatus(createStatusText, $"Error: Faculty ID '{facultyId}' already exists."); SetButtonInteractable(createAccountButton, true); return; }
+                bool exists = await firebaseManager.DoesFacultyExistAsync(Email);
+                if (exists) { SetStatus(createStatusText, $"Error: Faculty ID '{Email}' already exists."); SetButtonInteractable(createAccountButton, true); return; }
 
                 facultyDataToSave = new FacultyMemberData
                 {
-                    FacultyID = facultyId,
+                    Email = Email,
                     FullName = fullName,
                     Department = department,
                     Position = position,
@@ -332,7 +357,7 @@ public class FacultyPortalManager : MonoBehaviour
                 if (isEditingAccount)
                 {
                     // Re-fetch to get the latest data (especially if password hash changed)
-                    currentLoggedInFacultyData = await firebaseManager.GetFacultyMemberAsync(facultyId);
+                    currentLoggedInFacultyData = await firebaseManager.GetFacultyMemberAsync(Email);
                     LoginSuccess(currentLoggedInFacultyData); // Go back to location update panel
                 }
                 else
@@ -364,19 +389,19 @@ public class FacultyPortalManager : MonoBehaviour
 
 
         SetButtonInteractable(updateLocationButton, false); SetStatus(locationUpdateStatusText, "Updating...");
-        string facultyId = currentLoggedInFacultyData.FacultyID;
+        string Email = currentLoggedInFacultyData.FacultyID;
         bool overallSuccess = true;
 
         try
         {
-            if (!await firebaseManager.UpdateFacultyLocationAsync(facultyId, selectedLocationName)) overallSuccess = false;
+            if (!await firebaseManager.UpdateFacultyLocationAsync(Email, selectedLocationName)) overallSuccess = false;
             else { if (currentLoggedInFacultyData != null) currentLoggedInFacultyData.CurrentLocationName = selectedLocationName; UpdateCurrentLocationDisplay(selectedLocationName); }
         }
         catch (Exception e) { Debug.LogError($"Update Location Error: {e.Message}"); overallSuccess = false; }
 
         try
         {
-            if (!await firebaseManager.UpdateFacultyAvailabilityAsync(facultyId, selectedStatus)) overallSuccess = false;
+            if (!await firebaseManager.UpdateFacultyAvailabilityAsync(Email, selectedStatus)) overallSuccess = false;
             else { if (currentLoggedInFacultyData != null) currentLoggedInFacultyData.AvailabilityStatus = selectedStatus; SetAvailabilityDropdownSelection(); }
         }
         catch (Exception e) { Debug.LogError($"Update Availability Error: {e.Message}"); overallSuccess = false; }
@@ -395,7 +420,7 @@ public class FacultyPortalManager : MonoBehaviour
     public void OnLogoutButtonPressed()
     {
         // No Firebase Auth SignOut, just clear local session data
-        Debug.Log($"Faculty {currentLoggedInFacultyData?.FacultyID ?? "Unknown"} logged out (local session cleared).");
+        Debug.Log($"Faculty {currentLoggedInFacultyData?.Email ?? "Unknown"} logged out (local session cleared).");
         currentLoggedInFacultyData = null; ShowLoginPanel();
     }
 
@@ -409,7 +434,7 @@ public class FacultyPortalManager : MonoBehaviour
     public void OnEditAccountPressed()
     {
         if (!EnsureLoggedIn(locationUpdateStatusText)) return;
-        Debug.Log($"Editing account for: {currentLoggedInFacultyData.FacultyID}");
+        Debug.Log($"Editing account for: {currentLoggedInFacultyData.Email}");
         ShowCreateAccountPanel(true);
 
         if (createAccountButton != null)
@@ -423,13 +448,13 @@ public class FacultyPortalManager : MonoBehaviour
     public async void OnDeleteAccountPressed()
     {
         if (!EnsureLoggedIn(locationUpdateStatusText)) return;
-        if (!await ShowConfirmationDialog($"Delete account for {currentLoggedInFacultyData.FullName} ({currentLoggedInFacultyData.FacultyID})? This is permanent."))
+        if (!await ShowConfirmationDialog($"Delete account for {currentLoggedInFacultyData.FullName} ({currentLoggedInFacultyData.Email})? This is permanent."))
         {
             SetStatus(locationUpdateStatusText, "Deletion cancelled."); return;
         }
-        Debug.Log($"Attempting to delete account: {currentLoggedInFacultyData.FacultyID}");
+        Debug.Log($"Attempting to delete account: {currentLoggedInFacultyData.Email}");
         SetButtonInteractable(deleteAccountButton, false); SetStatus(locationUpdateStatusText, "Deleting account...");
-        bool success = await firebaseManager.DeleteFacultyMemberAsync(currentLoggedInFacultyData.FacultyID);
+        bool success = await firebaseManager.DeleteFacultyMemberAsync(currentLoggedInFacultyData.Email);
         if (success) { SetStatus(locationUpdateStatusText, "Account deleted successfully."); OnLogoutButtonPressed(); }
         else { SetStatus(locationUpdateStatusText, "Error deleting account."); SetButtonInteractable(deleteAccountButton, true); }
     }
@@ -627,7 +652,7 @@ public class FacultyPortalManager : MonoBehaviour
 
     private bool EnsureLoggedIn(TextMeshProUGUI statusLabel)
     {
-        if (currentLoggedInFacultyData == null || string.IsNullOrEmpty(currentLoggedInFacultyData.FacultyID))
+        if (currentLoggedInFacultyData == null || string.IsNullOrEmpty(currentLoggedInFacultyData.Email))
         {
             Debug.LogError("Action requires login, but no faculty data is cached.");
             SetStatus(statusLabel, "Error: Session expired. Please log in again."); ShowLoginPanel(); return false;

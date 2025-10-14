@@ -111,13 +111,12 @@ public class RoomSearchUIController : MonoBehaviour
     {
         if (index <= 0) 
         {
-            // Optionally stop navigation if the user de-selects a room
             navigationManager?.StopNavigation();
             return;
         }
         selectedRoom = RoomDropdown.options[index].text;
         TextDisplay.text = $"Navigating to {selectedRoom}...";
-        NavigateTo(selectedRoom); // Use our new unified method
+        NavigateTo(selectedRoom);
     }
 
     void NavigateToDepartment(string department)

@@ -9,6 +9,7 @@ using System;
 public class FacultyMemberData
 {
     public string FacultyID; // Used as the key in RTDB
+    public string Email;
     public string FullName;
     public string Department;
     public string CurrentLocationName;

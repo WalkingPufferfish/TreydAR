@@ -392,7 +392,7 @@ public class NavigationManager : MonoBehaviour
         Debug.Log($"Loaded {availableDestinations.Count} destinations from Firebase.");
 
         await LoadDestinations();
-        if (availableDestinations.Count > 0) UpdateStatus("Scan a target image on campus.");
+        //if (availableDestinations.Count > 0) UpdateStatus("Scan a target image on campus.");
     }
     async Task LoadDestinations()
     {
@@ -450,10 +450,10 @@ public class NavigationManager : MonoBehaviour
             {
                 confirmPlacementButton.gameObject.SetActive(false);
             }
-            if (!isInitialized)
+            /*if (!isInitialized)
             {
                 UpdateStatus("Scan Target Image...");
-            }
+            }*/
         }
     }
 

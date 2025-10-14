@@ -266,8 +266,18 @@ public class FirebaseManager : MonoBehaviour
         string json = JsonUtility.ToJson(facultyData);
         try
         {
-            // The FacultyID property MUST be the user's UID for this to work.
-            await databaseReference.Child(facultyDataRootNode).Child(facultyData.FacultyID).SetRawJsonValueAsync(json);
+            var updateData = new Dictionary<string, object>
+            {
+                { nameof(FacultyMemberData.Email), facultyData.Email },
+                { nameof(FacultyMemberData.FullName), facultyData.FullName },
+                { nameof(FacultyMemberData.Department), facultyData.Department },
+                { nameof(FacultyMemberData.Position), facultyData.Position },
+                { nameof(FacultyMemberData.AvailabilityStatus), facultyData.AvailabilityStatus },
+                { nameof(FacultyMemberData.CurrentLocationName), facultyData.CurrentLocationName },
+                { nameof(FacultyMemberData.PasswordHash), facultyData.PasswordHash }
+            };
+
+            await databaseReference.Child(facultyDataRootNode).Child(facultyData.FacultyID).UpdateChildrenAsync(updateData);
 
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
