@@ -254,7 +254,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &33581674
 RectTransform:
   m_ObjectHideFlags: 0
@@ -271,7 +271,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.000011444, y: -348}
+  m_AnchoredPosition: {x: 0.0000019073, y: -584}
   m_SizeDelta: {x: 767.3642, y: 141.8049}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &33581675
@@ -503,14 +503,9 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 2.4552, y: -319}
-  m_SizeDelta: {x: 345.58, y: 84.6213}
+  m_AnchoredPosition: {x: -236.41, y: -82.966}
+  m_SizeDelta: {x: 472.82, y: 84.6213}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!4 &62502600 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
-  m_PrefabInstance: {fileID: 1544458016}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &69903888
 GameObject:
   m_ObjectHideFlags: 0
@@ -6455,7 +6450,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Office
+  m_text: Room
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6847,23 +6842,23 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1117386456}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -4896262937118256313, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: pointName
-      value: Medina
+      value: Medina - Room 202
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 77.12
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 6.62
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -6.78
+      value: 154.94
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6895,18 +6890,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
-      value: Medina-Room 2
+      value: Medina - Room 202
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
---- !u!4 &734256650 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
-  m_PrefabInstance: {fileID: 725127363}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &735519885
 GameObject:
   m_ObjectHideFlags: 0
@@ -6999,7 +6989,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 1
+  m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -10781,7 +10771,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Office
+  m_text: Room
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -12854,11 +12844,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Padding: {x: -8, y: -5, z: -8, w: -5}
   m_Softness: {x: 0, y: 0}
---- !u!4 &1117386456 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
-  m_PrefabInstance: {fileID: 2010986695}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1143538671
 GameObject:
   m_ObjectHideFlags: 0
@@ -15660,23 +15645,23 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1117386456}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -4896262937118256313, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: pointName
-      value: Medina
+      value: Medina - Room 201
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 77.49
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 6.71
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.9700012
+      value: 143.17
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalRotation.w
@@ -15708,7 +15693,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
-      value: Medina-Room 1
+      value: Medina - Room 201
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -16506,6 +16491,67 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1629740443}
   m_CullTransparentMesh: 1
+--- !u!1001 &1643908247
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -4896262937118256313, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: pointName
+      value: Medina - PBEN
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 73.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 131.37
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_Name
+      value: Medina - PBEN
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
 --- !u!1 &1645651568
 GameObject:
   m_ObjectHideFlags: 0
@@ -16624,7 +16670,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 1.5973, y: -550.0136}
+  m_AnchoredPosition: {x: -0.00001359, y: -773}
   m_SizeDelta: {x: 300.5433, y: 80.9728}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1649360285
@@ -19121,7 +19167,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1970809729
 RectTransform:
   m_ObjectHideFlags: 0
@@ -19611,15 +19657,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 59.5
+      value: 77.6
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 6.68
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 130.8
+      value: 144.27
       objectReference: {fileID: 0}
     - target: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_LocalRotation.w
@@ -19655,13 +19701,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 62502600}
-    - targetCorrespondingSourceObject: {fileID: 1523537349603844612, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 734256650}
+    m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
 --- !u!1 &2012705978
@@ -22056,14 +22096,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 154116534139571178, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1333453044549803786, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 4245255110524750218, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -22108,10 +22140,6 @@ PrefabInstance:
       propertyPath: arrowPrefab
       value: 
       objectReference: {fileID: 477282406}
-    - target: {fileID: 8457274450562260574, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8963573848873132614, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
       propertyPath: m_Name
       value: GridEnvironmentAnchor
@@ -22627,6 +22655,9 @@ SceneRoots:
   - {fileID: 2010599929523693537}
   - {fileID: 1776327900}
   - {fileID: 2010986695}
+  - {fileID: 1544458016}
+  - {fileID: 1643908247}
+  - {fileID: 725127363}
   - {fileID: 1342830334}
   - {fileID: 16820254}
   - {fileID: 1479065961}
