@@ -65,7 +65,7 @@ public class RoomSearchUIController : MonoBehaviour
             selectedDepartment = "";
             RoomDropdown.ClearOptions();
             RoomDropdown.interactable = false;
-            TextDisplay.text = "Please select a valid department.";
+            TextDisplay.text = "Please select a department.";
             return;
         }
 
@@ -109,7 +109,7 @@ public class RoomSearchUIController : MonoBehaviour
 
     void OnRoomSelected(int index)
     {
-        if (index <= 0) // Handles "Select Room..."
+        if (index <= 0) 
         {
             // Optionally stop navigation if the user de-selects a room
             navigationManager?.StopNavigation();
