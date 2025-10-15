@@ -487,7 +487,7 @@ public class FacultyPortalManager : MonoBehaviour
                            !dept.ToLowerInvariant().Contains("room"))
             .ToList();
 
-        List<string> options = new() { "Select Department/Building..." };
+        List<string> options = new() { "epartment / Building" };
         options.AddRange(filteredDepartments);
         locationDropdown.AddOptions(options);
 
@@ -610,7 +610,7 @@ public class FacultyPortalManager : MonoBehaviour
         locationDropdown.ClearOptions();
         List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
     {
-        new TMP_Dropdown.OptionData("Select Department/Building...")
+        new TMP_Dropdown.OptionData("Department / Building")
     };
 
         int selectedIndex = 0;

@@ -45,7 +45,7 @@ public class RoomSearchUIController : MonoBehaviour
         Debug.Log("Populating department dropdown...");
         DepartmentDropdown.ClearOptions();
 
-        List<string> options = new List<string> { "Select Department/Building..." };
+        List<string> options = new List<string> { "Department / Building" };
         options.AddRange(departmentData.Keys);
         DepartmentDropdown.AddOptions(options);
 
@@ -55,7 +55,7 @@ public class RoomSearchUIController : MonoBehaviour
         selectedDepartment = "";
         RoomDropdown.ClearOptions();
         RoomDropdown.interactable = false;
-        TextDisplay.text = "Department...";
+        TextDisplay.text = "Look for an image to scan...";
     }
 
     void OnDepartmentSelected(int index)
