@@ -45,7 +45,7 @@ public class RoomSearchUIController : MonoBehaviour
         Debug.Log("Populating department dropdown...");
         DepartmentDropdown.ClearOptions();
 
-        List<string> options = new List<string> { "Select Department..." };
+        List<string> options = new List<string> { "Select Department/Building..." };
         options.AddRange(departmentData.Keys);
         DepartmentDropdown.AddOptions(options);
 

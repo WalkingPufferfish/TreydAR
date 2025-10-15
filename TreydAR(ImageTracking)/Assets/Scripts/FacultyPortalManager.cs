@@ -71,7 +71,7 @@ public class FacultyPortalManager : MonoBehaviour
     private FacultyMemberData currentLoggedInFacultyData;
     private List<PathPointData> availableEndPoints = new List<PathPointData>();
     private readonly List<string> availabilityStatuses = new List<string> { "Select Status...", "In Office", "Meeting/OB", "WFH", "On Leave", "Out" };
-    private readonly List<string> positionOptions = new List<string> { "Select Position...", "Dean", "Director", "Vice-President" };
+    private readonly List<string> positionOptions = new List<string> { "Select Position...", "Dean", "Director", "Head" };
     private bool isEditingAccount = false;
     #endregion
 
@@ -487,7 +487,7 @@ public class FacultyPortalManager : MonoBehaviour
                            !dept.ToLowerInvariant().Contains("room"))
             .ToList();
 
-        List<string> options = new() { "Select Department..." };
+        List<string> options = new() { "Select Department/Building..." };
         options.AddRange(filteredDepartments);
         locationDropdown.AddOptions(options);
 
@@ -610,7 +610,7 @@ public class FacultyPortalManager : MonoBehaviour
         locationDropdown.ClearOptions();
         List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
     {
-        new TMP_Dropdown.OptionData("Select Department...")
+        new TMP_Dropdown.OptionData("Select Department/Building...")
     };
 
         int selectedIndex = 0;
