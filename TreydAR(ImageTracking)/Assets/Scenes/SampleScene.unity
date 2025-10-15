@@ -175,6 +175,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Mech
       objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -231,6 +235,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: EndPoint
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1037,6 +1045,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: CSG
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3351,6 +3363,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: CNM
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -14536,6 +14552,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Library
       objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -15201,6 +15221,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Parking
       objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -15261,6 +15285,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: Registrar
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -15612,6 +15640,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: Old CEA
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -16088,6 +16120,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: CR
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -17953,6 +17989,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: FoodStalls
       objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -18897,6 +18937,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Sarigamit
       objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19780,6 +19824,10 @@ PrefabInstance:
     - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
       propertyPath: m_Name
       value: Medina
+      objectReference: {fileID: 0}
+    - target: {fileID: 7108512890721667980, guid: 09cf31a58f8dc9a41a5ea2ee3586c068, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -22125,18 +22173,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1072946227456815549, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.3882
-      objectReference: {fileID: 0}
-    - target: {fileID: 1072946227456815549, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 3.8409
-      objectReference: {fileID: 0}
-    - target: {fileID: 3405350869229117517, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_NavMeshData
-      value: 
-      objectReference: {fileID: 23800000, guid: c6a2d0064d5129b4288967a383a430e2, type: 2}
     - target: {fileID: 4245255110524750218, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -22181,26 +22217,6 @@ PrefabInstance:
       propertyPath: arrowPrefab
       value: 
       objectReference: {fileID: 477282406}
-    - target: {fileID: 7161818896194992066, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.39331895
-      objectReference: {fileID: 0}
-    - target: {fileID: 7161818896194992066, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 40.25615
-      objectReference: {fileID: 0}
-    - target: {fileID: 7161818896194992066, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0.1518
-      objectReference: {fileID: 0}
-    - target: {fileID: 7161818896194992066, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.07
-      objectReference: {fileID: 0}
-    - target: {fileID: 7161818896194992066, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 22.3522
-      objectReference: {fileID: 0}
     - target: {fileID: 8963573848873132614, guid: 18658d9415484354fa0ff9fcdc284837, type: 3}
       propertyPath: m_Name
       value: GridEnvironmentAnchor
