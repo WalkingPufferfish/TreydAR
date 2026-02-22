@@ -25,6 +25,8 @@ public class FirebaseManager : MonoBehaviour
     private bool firebaseInitialized = false;
     public bool IsInitialized => firebaseInitialized;
 
+    private List<PathPointData> cachedEndPoints = new();
+
     public event Action<Dictionary<string, FacultyMemberData>> OnFacultyDataUpdated;
     private Dictionary<string, FacultyMemberData> localFacultyCache = new Dictionary<string, FacultyMemberData>();
 
@@ -32,6 +34,7 @@ public class FirebaseManager : MonoBehaviour
     {
         await InitializeFirebase();
     }
+
 
     public async Task<Dictionary<string, DepartmentData>> GetDepartmentRoomDataAsync()
     {
@@ -153,10 +156,15 @@ public class FirebaseManager : MonoBehaviour
             Debug.LogError($"FirebaseManager: Exception getting endpoints from Firebase: {e.Message}");
         }
 
-        // Return the list, sorted alphabetically for the dropdown.
-        return endPoints.OrderBy(p => p.Name).ToList();
+        // Sort and cache the result
+        cachedEndPoints = endPoints.OrderBy(p => p.Name).ToList();
+        return cachedEndPoints;
     }
 
+    public PathPointData GetCachedEndPointByName(string name)
+    {
+        return cachedEndPoints?.FirstOrDefault(p => p.Name == name);
+    }
 
     public async Task<bool> SyncEndPointsAsync(List<PathPointData> endPointsToSync)
     {

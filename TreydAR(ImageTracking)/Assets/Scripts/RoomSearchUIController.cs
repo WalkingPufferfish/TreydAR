@@ -12,6 +12,7 @@ public class RoomSearchUIController : MonoBehaviour
     public TMP_Dropdown RoomDropdown;
     public TMP_Text TextDisplay;
     public NavigationManager navigationManager;
+    public DatabaseManager databaseManager;
 
     [Header("Firebase Reference")]
     public FirebaseManager firebaseManager;
@@ -24,6 +25,7 @@ public class RoomSearchUIController : MonoBehaviour
     {
         Debug.Log("RoomSearchUIController: Start() triggered");
 
+        RoomDropdown.ClearOptions();
         RoomDropdown.interactable = false;
 
         DepartmentDropdown.onValueChanged.RemoveAllListeners();
@@ -50,9 +52,10 @@ public class RoomSearchUIController : MonoBehaviour
         DepartmentDropdown.value = 0;
         DepartmentDropdown.RefreshShownValue();
 
-        selectedDepartment = DepartmentDropdown.options[1].text; // First actual department
-        UpdateRoomDropdown(selectedDepartment);
-        NavigateToDepartment(selectedDepartment);
+        selectedDepartment = "";
+        RoomDropdown.ClearOptions();
+        RoomDropdown.interactable = false;
+        TextDisplay.text = "Department...";
     }
 
     void OnDepartmentSelected(int index)
@@ -70,7 +73,12 @@ public class RoomSearchUIController : MonoBehaviour
         Debug.Log($"Department selected: {selectedDepartment}");
 
         UpdateRoomDropdown(selectedDepartment);
-        NavigateToDepartment(selectedDepartment);
+
+        // Navigate to department only if no room is selected
+        if (RoomDropdown == null || RoomDropdown.value == 0)
+        {
+            NavigateToDepartment(selectedDepartment);
+        }
     }
 
     void UpdateRoomDropdown(string department)
@@ -89,36 +97,32 @@ public class RoomSearchUIController : MonoBehaviour
 
         if (rooms.Count > 0)
         {
-            List<string> roomOptions = new List<string> { "Select Room..." };
+            List<string> roomOptions = new List<string> { "Select Office..." };
             roomOptions.AddRange(rooms);
 
             RoomDropdown.AddOptions(roomOptions);
             RoomDropdown.interactable = true;
             RoomDropdown.value = 0;
             RoomDropdown.RefreshShownValue();
-            TextDisplay.text = $"Rooms for {department} loaded.";
+            TextDisplay.text = $"Offices for {department} loaded.";
         }
         else
         {
-            TextDisplay.text = $"No rooms assigned to {department}.";
+            TextDisplay.text = $"No offices assigned to {department}.";
         }
     }
 
     void OnRoomSelected(int index)
     {
-        if (index < 0 || index >= RoomDropdown.options.Count) return;
-
-        if (index == 0)
+        if (index <= 0) // Handles "Select Room..."
         {
-            selectedRoom = "";
-            TextDisplay.text = "Please select a valid room.";
+            // Optionally stop navigation if the user de-selects a room
+            navigationManager?.StopNavigation();
             return;
         }
-
         selectedRoom = RoomDropdown.options[index].text;
-        Debug.Log($"Room selected: {selectedRoom}");
-        TextDisplay.text = $"Selected room: {selectedRoom}";
-        navigationManager.NavigateToRoom(selectedRoom);
+        TextDisplay.text = $"Navigating to {selectedRoom}...";
+        NavigateTo(selectedRoom); // Use our new unified method
     }
 
     void NavigateToDepartment(string department)
@@ -128,9 +132,32 @@ public class RoomSearchUIController : MonoBehaviour
         string anchorName = departmentData[department].Name;
         if (!string.IsNullOrEmpty(anchorName))
         {
-            Debug.Log($"Navigating to department anchor: {anchorName}");
-            TextDisplay.text = $"Navigating to department: {department}";
-            navigationManager.NavigateToRoom(anchorName);
+            TextDisplay.text = $"Navigating to department: {department}...";
+            NavigateTo(anchorName); // Use our new unified method
+        }
+    }
+
+    private void NavigateTo(string destinationName)
+    {
+        if (databaseManager == null || navigationManager == null)
+        {
+            Debug.LogError("DatabaseManager or NavigationManager is not assigned!");
+            return;
+        }
+
+        // 1. Get the destination's data (including its LOCAL position) from the database.
+        PathPointData destinationPoint = databaseManager.GetPathPointByName(destinationName);
+
+        if (destinationPoint != null)
+        {
+            // 2. Pass this data to the one, correct navigation method.
+            //    NavigationManager will now handle the local-to-world conversion.
+            navigationManager.StartNavigationToPoint(destinationPoint);
+        }
+        else
+        {
+            Debug.LogWarning($"Destination '{destinationName}' not found in the database.");
+            TextDisplay.text = $"Destination '{destinationName}' not found.";
         }
     }
 }

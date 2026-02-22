@@ -425,6 +425,8 @@ public class FacultyPortalManager : MonoBehaviour
         locationDropdown.AddOptions(options);
         locationDropdown.value = 0;
         locationDropdown.RefreshShownValue();
+        roomDropdown.ClearOptions();
+        roomDropdown.interactable = false;
 
         locationDropdown.onValueChanged.RemoveAllListeners();
         locationDropdown.onValueChanged.AddListener(OnDepartmentSelected);
@@ -432,31 +434,50 @@ public class FacultyPortalManager : MonoBehaviour
 
     private void OnDepartmentSelected(int index)
     {
-        if (locationDropdown == null || roomDropdown == null) return;
+        if (locationDropdown == null || roomDropdown == null || navigationManager == null) return;
 
         roomDropdown.ClearOptions();
         roomDropdown.interactable = false;
 
-        if (index == 0) return;
+        if (index == 0)
+        {
+            SetStatus(locationUpdateStatusText, "Please select a valid department.");
+            return;
+        }
 
         string selectedDept = locationDropdown.options[index].text;
-        if (!departmentRoomMap.ContainsKey(selectedDept)) return;
+        if (!departmentRoomMap.ContainsKey(selectedDept))
+        {
+            SetStatus(locationUpdateStatusText, $"Department '{selectedDept}' not found.");
+            return;
+        }
 
         List<string> rooms = departmentRoomMap[selectedDept];
-        if (rooms == null || rooms.Count == 0) return;
+        if (rooms == null || rooms.Count == 0)
+        {
+            SetStatus(locationUpdateStatusText, $"No offce found for {selectedDept}.");
+            return;
+        }
 
-        List<string> roomOptions = new() { "Select Room..." };
+        List<string> roomOptions = new() { "Select Office..." };
         roomOptions.AddRange(rooms);
         roomDropdown.AddOptions(roomOptions);
         roomDropdown.value = 0;
         roomDropdown.RefreshShownValue();
         roomDropdown.interactable = true;
 
-        if (rooms.Count == 1)
-        {
-            roomDropdown.value = 1;
-            roomDropdown.RefreshShownValue();
-        }
+        SetStatus(locationUpdateStatusText, $"Offices for {selectedDept} loaded.");
+
+        navigationManager.NavigateTo(selectedDept);
+    }
+
+    private void OnRoomSelected(int index)
+    {
+        if (roomDropdown == null || navigationManager == null || index <= 0) return;
+
+        string selectedRoom = roomDropdown.options[index].text;
+        SetStatus(locationUpdateStatusText, $"Navigating to: {selectedRoom}");
+        navigationManager.NavigateTo(selectedRoom);
     }
 
     private async Task FetchDepartmentRoomsAndPopulate()
@@ -495,33 +516,70 @@ public class FacultyPortalManager : MonoBehaviour
         ShowLocationUpdatePanel();
     }
 
-    private void LoginFail(string attemptedId, string message = "Error: Invalid Faculty ID or Password.")
+    private void LoginFail(string attemptedId, string message = "Error: Invalid Employee ID or Password.")
     {
-        Debug.LogWarning($"Faculty login failed for ID: {attemptedId}. Reason: {message}");
+        Debug.LogWarning($"Employee login failed for ID: {attemptedId}. Reason: {message}");
         SetStatus(loginStatusText, message); currentLoggedInFacultyData = null;
     }
 
     private void PopulateLocationDropdown()
     {
-        if (locationDropdown == null || databaseManager == null) { Debug.LogError("PopulateLocationDropdown: Refs missing."); return; }
-        try { availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>(); }
-        catch (Exception e) { Debug.LogError($"SQLite error: {e.Message}"); availableEndPoints = new List<PathPointData>(); }
+        if (locationDropdown == null || databaseManager == null)
+        {
+            Debug.LogError("PopulateLocationDropdown: Refs missing.");
+            return;
+        }
+
+        try
+        {
+            availableEndPoints = databaseManager.GetAllEndPoints() ?? new List<PathPointData>();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SQLite error: {e.Message}");
+            availableEndPoints = new List<PathPointData>();
+        }
+
+        List<PathPointData> filteredEndPoints = availableEndPoints
+            .Where(p => p != null &&
+                        !string.IsNullOrEmpty(p.Name) &&
+                        !p.Name.Contains("-") &&
+                        !p.Name.ToLowerInvariant().Contains("room"))
+            .ToList();
+
         locationDropdown.ClearOptions();
-        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData> { new TMP_Dropdown.OptionData("Select Location...") };
+        List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
+    {
+        new TMP_Dropdown.OptionData("Select Department...")
+    };
+
         int selectedIndex = 0;
         string currentLocation = currentLoggedInFacultyData?.CurrentLocationName;
-        for (int i = 0; i < availableEndPoints.Count; i++)
+
+        foreach (var point in filteredEndPoints)
         {
-            PathPointData point = availableEndPoints[i];
-            if (point != null && !string.IsNullOrEmpty(point.Name))
+            options.Add(new TMP_Dropdown.OptionData(point.Name));
+            if (!string.IsNullOrEmpty(currentLocation) &&
+                point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase))
             {
-                options.Add(new TMP_Dropdown.OptionData(point.Name));
-                if (!string.IsNullOrEmpty(currentLocation) && point.Name.Equals(currentLocation, StringComparison.OrdinalIgnoreCase)) { selectedIndex = i + 1; }
+                selectedIndex = options.Count - 1;
             }
         }
-        if (options.Count == 1) { options.Clear(); options.Add(new TMP_Dropdown.OptionData("No Locations Available")); locationDropdown.interactable = false; }
-        else { locationDropdown.interactable = true; }
-        locationDropdown.options = options; locationDropdown.value = selectedIndex; locationDropdown.RefreshShownValue();
+
+        if (options.Count == 1)
+        {
+            options.Clear();
+            options.Add(new TMP_Dropdown.OptionData("No Departments Available"));
+            locationDropdown.interactable = false;
+        }
+        else
+        {
+            locationDropdown.interactable = true;
+        }
+
+        locationDropdown.options = options;
+        locationDropdown.value = selectedIndex;
+        locationDropdown.RefreshShownValue();
     }
 
     private void UpdateCurrentLocationDisplay(string locationName)
@@ -536,7 +594,7 @@ public class FacultyPortalManager : MonoBehaviour
     {
         if (currentLoggedInFacultyData == null || string.IsNullOrEmpty(currentLoggedInFacultyData.FacultyID))
         {
-            Debug.LogError("Action requires login, but no faculty data is cached.");
+            Debug.LogError("Action requires login, but no employee data is cached.");
             SetStatus(statusLabel, "Error: Session expired. Please log in again."); ShowLoginPanel(); return false;
         }
         return true;
